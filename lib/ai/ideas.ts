@@ -27,9 +27,23 @@ function extractJsonString(content: string): string {
   return s;
 }
 
-/** Allow trailing commas and strip them so JSON.parse accepts. */
+/** Fix common LLM JSON issues: trailing commas, unescaped newlines/tabs inside strings. */
 function normalizeJson(s: string): string {
-  return s.replace(/,(\s*[}\]])/g, "$1");
+  // Remove trailing commas before ] or }
+  let out = s.replace(/,(\s*[}\]])/g, "$1");
+  // Fix unescaped newlines and tabs inside double-quoted strings (common in Claude output)
+  out = out.replace(
+    /"((?:[^"\\]|\\.)*)"/g,
+    (_, content) =>
+      '"' +
+      content
+        .replace(/\r\n/g, "\\n")
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\t/g, "\\t") +
+      '"'
+  );
+  return out;
 }
 
 function parseIdeasFromResponse(content: string): Idea[] {
