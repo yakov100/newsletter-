@@ -115,8 +115,11 @@ async function generateDraftCloud(
       },
     ],
   });
-  const textBlock = message.content.find((b): b is { type: "text"; text: string } => b.type === "text");
-  const text = textBlock?.text?.trim();
+  const textBlock = message.content.find((b) => (b as { type: string }).type === "text");
+  const text =
+    textBlock && "text" in textBlock && typeof (textBlock as { text?: string }).text === "string"
+      ? (textBlock as { text: string }).text.trim()
+      : undefined;
   return text || getMockDraft(title, description, outline);
 }
 

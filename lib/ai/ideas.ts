@@ -74,10 +74,11 @@ async function generateIdeasWithClaude(
     system: config.systemPrompt,
     messages: [{ role: "user", content: USER_PROMPT }],
   });
-  const textBlock = message.content.find(
-    (b): b is { type: "text"; text: string } => b.type === "text"
-  );
-  const content = textBlock?.text?.trim();
+  const textBlock = message.content.find((b) => (b as { type: string }).type === "text");
+  const content =
+    textBlock && "text" in textBlock && typeof (textBlock as { text?: string }).text === "string"
+      ? (textBlock as { text: string }).text.trim()
+      : undefined;
   if (!content) throw new Error("לא התקבלה תשובה מ-Claude");
   try {
     return parseIdeasFromResponse(content);

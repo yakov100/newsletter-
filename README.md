@@ -38,3 +38,17 @@ supabase db push
 npm run build
 npm start
 ```
+
+## Git (GitHub) ו־Vercel
+
+- **ריפו נפרד ב־Git:** הפרויקט כבר מאותחל עם Git (ענף `master`). כדי לדחוף ל־GitHub:
+  1. צור ריפו חדש ב־[GitHub](https://github.com/new) (למשל `newsletter`).
+  2. הוסף remote ודחוף:
+  ```bash
+  git remote add origin https://github.com/YOUR_USERNAME/newsletter.git
+  git push -u origin master
+  ```
+- **אתר ב־Vercel:** הפרויקט כבר מקושר ל־Vercel ופרוס. כתובת האתר:
+  - **Production:** https://newsletter-lac-mu.vercel.app  
+  - דשבורד: https://vercel.com/yaakovs-projects-c8a05261/newsletter  
+  כדי לפרוס שוב: `vercel --prod` (או חיבור ה־Git ל־Vercel לעדכונים אוטומטיים).
