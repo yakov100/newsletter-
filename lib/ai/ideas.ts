@@ -27,28 +27,88 @@ function extractJsonString(content: string): string {
   return s;
 }
 
-/** Fix common LLM JSON issues: trailing commas, unescaped newlines/tabs inside strings. */
-function normalizeJson(s: string): string {
-  // Remove trailing commas before ] or }
-  let out = s.replace(/,(\s*[}\]])/g, "$1");
-  // Fix unescaped newlines and tabs inside double-quoted strings (common in Claude output)
-  out = out.replace(
-    /"((?:[^"\\]|\\.)*)"/g,
-    (_, content) =>
-      '"' +
-      content
-        .replace(/\r\n/g, "\\n")
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t") +
-      '"'
-  );
+/** Remove trailing commas before ] or }. */
+function removeTrailingCommas(s: string): string {
+  return s.replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * Fix common LLM JSON issues inside double-quoted strings using a simple state machine:
+ * - unescaped newlines, \\r, \\t -> \\n, \\r, \\t
+ * - unescaped " inside a value (when next non-space is not : , } ]) -> \\"
+ */
+function repairJsonStrings(s: string): string {
+  let out = "";
+  let i = 0;
+  let inString = false;
+  let escapeNext = false;
+  while (i < s.length) {
+    const c = s[i];
+    if (escapeNext) {
+      out += c;
+      escapeNext = false;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (c === "\\") {
+        out += c;
+        escapeNext = true;
+        i++;
+        continue;
+      }
+      if (c === '"') {
+        // Peek ahead: if next non-space is : , } ] then this " closes the string
+        let j = i + 1;
+        while (j < s.length && /[\s\n\r\t]/.test(s[j])) j++;
+        if (j < s.length && /[:,}\]]/.test(s[j])) {
+          out += c;
+          inString = false;
+          i++;
+          continue;
+        }
+        // Unescaped quote inside value – escape it
+        out += '\\"';
+        i++;
+        continue;
+      }
+      if (c === "\r" && s[i + 1] === "\n") {
+        out += "\\n";
+        i += 2;
+        continue;
+      }
+      if (c === "\n" || c === "\r") {
+        out += c === "\n" ? "\\n" : "\\r";
+        i++;
+        continue;
+      }
+      if (c === "\t") {
+        out += "\\t";
+        i++;
+        continue;
+      }
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out += c;
+      i++;
+      continue;
+    }
+    out += c;
+    i++;
+  }
   return out;
 }
 
-function parseIdeasFromResponse(content: string): Idea[] {
-  const jsonStr = normalizeJson(extractJsonString(content));
-  const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+function normalizeJson(s: string): string {
+  return repairJsonStrings(removeTrailingCommas(s));
+}
+
+/** Extract ideas from parsed object. */
+function ideasFromParsed(parsed: Record<string, unknown>): Idea[] {
   const raw: Array<{ title?: string; description?: string }> = Array.isArray(parsed.ideas)
     ? parsed.ideas
     : Array.isArray(parsed.suggestions)
@@ -59,6 +119,57 @@ function parseIdeasFromResponse(content: string): Idea[] {
     title: String(item.title ?? `רעיון ${i + 1}`).slice(0, 200),
     description: String(item.description ?? "").slice(0, 500),
   }));
+}
+
+/**
+ * Fallback: extract idea-like objects from text when JSON is too broken.
+ * Looks for "title" and "description" (or "תיאור"/"כותרת") near each other.
+ */
+function extractIdeasFallback(content: string): Idea[] {
+  const ideas: Idea[] = [];
+  // Match objects that have title and description (English or Hebrew keys)
+  const objectLike = content.split(/\}\s*,?\s*\{/);
+  for (const block of objectLike) {
+    const titleMatch = block.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"|"כותרת"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    const descMatch = block.match(/"description"\s*:\s*"((?:[^"\\]|\\.)*)"|"תיאור"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    const title = (titleMatch?.[1] ?? titleMatch?.[2] ?? "").replace(/\\n/g, "\n").trim();
+    const description = (descMatch?.[1] ?? descMatch?.[2] ?? "").replace(/\\n/g, "\n").trim();
+    if (title || description) {
+      ideas.push({
+        id: randomId(),
+        title: title.slice(0, 200) || `רעיון ${ideas.length + 1}`,
+        description: description.slice(0, 500),
+      });
+    }
+    if (ideas.length >= 3) break;
+  }
+  if (ideas.length > 0) return ideas;
+  // Single fallback: treat whole extracted block as one idea
+  const extracted = extractJsonString(content);
+  if (extracted.length > 20) {
+    return [
+      {
+        id: randomId(),
+        title: "רעיון מהתשובה",
+        description: extracted.replace(/\s+/g, " ").slice(0, 500),
+      },
+    ];
+  }
+  return [];
+}
+
+function parseIdeasFromResponse(content: string): Idea[] {
+  const jsonStr = normalizeJson(extractJsonString(content));
+  try {
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+    const result = ideasFromParsed(parsed);
+    if (result.length > 0) return result;
+  } catch {
+    // JSON parse failed – try fallback extraction
+  }
+  const fallback = extractIdeasFallback(content);
+  if (fallback.length > 0) return fallback;
+  throw new Error("לא הצלחנו לפרש את תשובת Claude. נסה שוב או צור רעיון משלך.");
 }
 
 export async function generateIdeas(config: IdeasAgentConfig): Promise<Idea[]> {

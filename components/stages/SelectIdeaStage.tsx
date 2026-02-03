@@ -9,14 +9,23 @@ function randomId(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+interface IdeaValidation {
+  title: string;
+  description: string;
+  valid: boolean;
+  reason?: string;
+}
+
 function IdeaCard({
   idea,
   selected,
   onSelect,
+  validation,
 }: {
   idea: Idea;
   selected: boolean;
   onSelect: () => void;
+  validation?: IdeaValidation;
 }) {
   return (
     <button
@@ -35,6 +44,19 @@ function IdeaCard({
       <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">
         {idea.description}
       </p>
+      {validation !== undefined && (
+        <p
+          className={`mt-2 text-xs font-medium ${
+            validation.valid
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {validation.valid
+            ? "✓ נכון, רלוונטי"
+            : `לא רלוונטי${validation.reason ? `: ${validation.reason}` : ""}`}
+        </p>
+      )}
     </button>
   );
 }
@@ -46,10 +68,32 @@ export function SelectIdeaStage() {
   const [customDescription, setCustomDescription] = useState("");
   const [replaceLoading, setReplaceLoading] = useState(false);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [validations, setValidations] = useState<IdeaValidation[] | null>(null);
+  const [validationsLoading, setValidationsLoading] = useState(false);
+
+  const handleValidateIdeas = async () => {
+    if (!ideas.length) return;
+    setValidationsLoading(true);
+    setValidations(null);
+    try {
+      const res = await fetch("/api/validate-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ideas: ideas.map((i) => ({ title: i.title, description: i.description })),
+        }),
+      });
+      const data = await res.json();
+      if (data.results) setValidations(data.results);
+    } finally {
+      setValidationsLoading(false);
+    }
+  };
 
   const handleReplaceIdeas = async () => {
     setReplaceLoading(true);
     setReplaceError(null);
+    setValidations(null);
     selectIdea(null);
     try {
       const res = await fetch("/api/ideas", { method: "POST" });
@@ -96,18 +140,27 @@ export function SelectIdeaStage() {
         </p>
       </div>
       <div className="flex flex-col gap-3">
-        {ideas.map((idea) => (
+        {ideas.map((idea, idx) => (
           <IdeaCard
             key={idea.id}
             idea={idea}
             selected={selectedIdea?.id === idea.id}
             onSelect={() => selectIdea(idea)}
+            validation={validations?.[idx]}
           />
         ))}
       </div>
 
       {ideas.length > 0 && (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={handleValidateIdeas}
+            disabled={validationsLoading}
+            className="text-sm font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+          >
+            {validationsLoading ? "בודק…" : "AI יבדוק אם ההצעות נכונות"}
+          </button>
           {replaceError && (
             <p className="text-red-600 dark:text-red-400 text-sm font-medium" role="alert">
               {replaceError}
