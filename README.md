@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# מערכת כתיבה חכמה (Newsletter / תוכן)
 
-## Getting Started
+מערכת שמלווה מרעיון מעורפל לכתבה ברורה – בלי בלגן. זרימה ליניארית: רעיונות → בחירה → כתיבה → עריכה → סיום.
 
-First, run the development server:
+## התחלה
 
 ```bash
+npm install
+cp .env.example .env.local
+# ערוך .env.local עם OPENAI_API_KEY ו/או Supabase
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+פתח [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## משתני סביבה
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **OPENAI_API_KEY** – (אופציונלי) ליצירת רעיונות, שלד כתבה והצעות עריכה. בלי מפתח – משתמשים ב-mock.
+- **OPENAI_MODEL** – (אופציונלי) ברירת מחדל: `gpt-4o-mini`.
+- **NEXT_PUBLIC_SUPABASE_URL**, **NEXT_PUBLIC_SUPABASE_ANON_KEY** – (אופציונלי) להתחברות ושמירה לארכיון. בלי – "שמירה לארכיון" ידרוש התחברות ותחזיר 503 אם Supabase לא מוגדר.
 
-## Learn More
+## הגדרות סוכנים
 
-To learn more about Next.js, take a look at the following resources:
+בעמוד **הגדרות** (/settings) מגדירים את "מוח" סוכן הרעיונות וסוכן הכתיבה. ההגדרות נשמרות ב-`data/agent-config.json` ומשמשות בכל קריאת AI.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+הרצת מיגרציות (אם משתמשים ב-Supabase):
 
-## Deploy on Vercel
+```bash
+supabase db push
+# או ייבא ידנית את supabase/migrations/00001_init.sql
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## בנייה
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm start
+```

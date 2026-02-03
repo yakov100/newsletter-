@@ -18,7 +18,7 @@ const initialSession: WritingSession = {
 type SessionContextValue = {
   session: WritingSession;
   setIdeas: (ideas: Idea[]) => void;
-  selectIdea: (idea: Idea) => void;
+  selectIdea: (idea: Idea | null) => void;
   setOutline: (outline: string) => void;
   setDraftContent: (content: string) => void;
   setEditedContent: (content: string) => void;
@@ -40,7 +40,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const selectIdea = useCallback((idea: Idea) => {
+  const selectIdea = useCallback((idea: Idea | null) => {
     setSession((prev) => ({
       ...prev,
       selectedIdea: idea,
@@ -73,11 +73,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const goToStage = useCallback((stage: Stage) => {
-    setSession((prev) => ({
-      ...prev,
-      stage,
-      updatedAt: Date.now(),
-    }));
+    setSession((prev) => {
+      const next = { ...prev, stage, updatedAt: Date.now() };
+      if (stage === "editing" && !prev.editedContent && prev.draftContent) {
+        next.editedContent = prev.draftContent;
+      }
+      return next;
+    });
   }, []);
 
   const resetSession = useCallback(() => {
