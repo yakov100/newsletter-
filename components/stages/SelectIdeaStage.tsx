@@ -15,6 +15,12 @@ interface IdeaValidation {
   reason?: string;
 }
 
+const CONFIDENCE_LABELS: Record<string, string> = {
+  high: "ביטחון: גבוה",
+  medium: "ביטחון: בינוני",
+  low: "ביטחון: נמוך / לבדיקה",
+};
+
 function IdeaCard({
   idea,
   selected,
@@ -26,6 +32,10 @@ function IdeaCard({
   onSelect: () => void;
   validation?: IdeaValidation;
 }) {
+  const hasSources = idea.sources && idea.sources.length > 0;
+  const confidenceLabel =
+    idea.confidenceLevel && CONFIDENCE_LABELS[idea.confidenceLevel];
+
   return (
     <div
       className={
@@ -40,6 +50,30 @@ function IdeaCard({
         <p className="flex-1 text-sm font-normal leading-relaxed text-muted">
           {idea.description}
         </p>
+        {hasSources && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted">מקורות:</span>
+            {idea.sources!.slice(0, 3).map((src) => (
+              <a
+                key={src.id}
+                href={src.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={src.title}
+                className="inline-flex items-center gap-1 rounded border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-2 py-1 text-xs font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/15"
+              >
+                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                בדוק מקור
+              </a>
+            ))}
+          </div>
+        )}
+        {!hasSources && !idea.sourceIds?.length && (
+          <p className="text-xs font-medium text-amber-400">ללא מקור – נדרש אימות</p>
+        )}
+        {confidenceLabel && (
+          <p className="text-xs font-medium text-muted">{confidenceLabel}</p>
+        )}
         {validation !== undefined && (
           <p
             className={`text-xs font-medium ${
