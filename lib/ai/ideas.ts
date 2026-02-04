@@ -1,7 +1,6 @@
 import type { IdeasAgentConfig } from "@/lib/agent-config";
 import type { Idea, IdeaConfidenceLevel, IdeaSource } from "@/types/idea";
 import { webSearch } from "./web-search";
-import { searchWikipediaAndGetSummaries } from "./wikipedia";
 
 function randomId(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -18,15 +17,8 @@ const RAG_SEARCH_QUERIES = [
   "הונאות ותעלולים מתועדים סיפורים אמיתיים",
 ];
 
-/** English queries for Wikipedia (en.wikipedia.org search). */
-const RAG_WIKIPEDIA_QUERIES = [
-  "famous true historical stories documented",
-  "documented hoaxes and cons real events",
-];
-
-const MAX_SOURCES_TOTAL = 22;
+const MAX_SOURCES_TOTAL = 18;
 const RESULTS_PER_QUERY = 6;
-const WIKIPEDIA_SUMMARIES_PER_QUERY = 2;
 
 export interface RagContext {
   /** Block to inject in user message: numbered sources with id, title, snippet, link. */
@@ -66,31 +58,6 @@ export async function fetchRagContext(): Promise<RagContext> {
         link: r.link,
         snippet: r.snippet,
       });
-    }
-  }
-
-  // Add Wikipedia summaries (en.wikipedia.org) as extra sources w1, w2, …
-  let wikiIdNum = 1;
-  for (const query of RAG_WIKIPEDIA_QUERIES) {
-    if (list.length >= MAX_SOURCES_TOTAL) break;
-    try {
-      const summaries = await searchWikipediaAndGetSummaries(
-        query,
-        WIKIPEDIA_SUMMARIES_PER_QUERY
-      );
-      for (const s of summaries) {
-        if (seen.has(s.url)) continue;
-        seen.add(s.url);
-        const id = `w${wikiIdNum++}`;
-        list.push({
-          id,
-          title: `ויקיפדיה: ${s.title}`,
-          link: s.url,
-          snippet: s.extract.slice(0, 600),
-        });
-      }
-    } catch {
-      // Skip Wikipedia on network/API errors
     }
   }
 

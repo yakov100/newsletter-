@@ -1,5 +1,4 @@
 import { webSearch, type WebSearchResult } from "./web-search";
-import { searchWikipediaAndGetSummaries } from "./wikipedia";
 
 export interface IdeaValidation {
   title: string;
@@ -35,8 +34,8 @@ async function judgeIdeasWithSearchResults(
     )
     .join("\n\n");
 
-  const prompt = `בדוק כל רעיון לכתבה מול תוצאות החיפוש והמקורות (כולל ויקיפדיה אם צורף). לכל רעיון קבע:
-- valid: true – יש סימוכין ברשת או בוויקיפדיה (הסיפור/הנושא אמיתי, מתועד, לא מומצא).
+  const prompt = `בדוק כל רעיון לכתבה מול תוצאות החיפוש. לכל רעיון קבע:
+- valid: true – יש סימוכין ברשת (הסיפור/הנושא אמיתי, מתועד, לא מומצא).
 - valid: false – אין סימוכין, מומצא, או לא רלוונטי; תן reason קצר בעברית.
 
 החזר JSON בלבד:
@@ -51,7 +50,7 @@ ${input}`;
       {
         role: "system",
         content:
-          "אתה בודק רעיונות לכתבות מול תוצאות חיפוש ווויקיפדיה. החזר JSON בלבד במבנה results, כל איבר עם title, description, valid, reason (אופציונלי).",
+          "אתה בודק רעיונות לכתבות מול תוצאות חיפוש ברשת. החזר JSON בלבד במבנה results, כל איבר עם title, description, valid, reason (אופציונלי).",
       },
       { role: "user", content: prompt },
     ],
@@ -119,23 +118,6 @@ export async function validateIdeas(
           query.length > 0
             ? await webSearch(query, { num: SEARCH_RESULTS_PER_IDEA })
             : [];
-
-        // Add Wikipedia summary as extra evidence (en.wikipedia.org)
-        if (query.length > 0) {
-          try {
-            const wikiSummaries = await searchWikipediaAndGetSummaries(query, 1);
-            if (wikiSummaries.length > 0) {
-              const w = wikiSummaries[0];
-              results.unshift({
-                title: `ויקיפדיה: ${w.title}`,
-                link: w.url,
-                snippet: w.extract.slice(0, 500),
-              });
-            }
-          } catch {
-            // Skip Wikipedia on network/API errors
-          }
-        }
 
         return {
           title: idea.title,
