@@ -3,8 +3,8 @@ import "./globals.css";
 import { PageBackground } from "@/components/ui/PageBackground";
 
 export const metadata: Metadata = {
-  title: "מערכת כתיבה חכמה",
-  description: "מרעיון מעורפל לכתבה ברורה – בלי בלגן",
+  title: "עוזר כתיבה AI",
+  description: "בואו נתחיל בתהליך היצירה – עוזר כתיבה AI",
 };
 
 export default function RootLayout({
@@ -13,18 +13,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className="scroll-smooth">
+    <html lang="he" dir="rtl" className="dark scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Assistant:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Secular+One&family=Alef:wght@400;700&family=David+Libre:wght@400;500;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Hebrew:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased bg-[var(--background)] text-[var(--foreground)] font-sans">
-        <PageBackground />
-        {children}
+      <body className="min-h-screen antialiased text-white font-sans">
+        <div className="relative flex min-h-screen w-full flex-col gradient-mesh overflow-x-hidden">
+          <PageBackground />
+          {children}
+        </div>
       </body>
     </html>
   );

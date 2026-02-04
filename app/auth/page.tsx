@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -17,14 +18,11 @@ export default function AuthPage() {
 
   if (!supabase) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[var(--background)]">
-        <p className="text-[var(--foreground-muted)] text-center max-w-sm">
+      <div className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="max-w-sm text-center text-white/70">
           התחברות לא מוגדרת. הגדר NEXT_PUBLIC_SUPABASE_URL ו-NEXT_PUBLIC_SUPABASE_ANON_KEY.
         </p>
-        <Link
-          href="/"
-          className="mt-6 text-[var(--accent)] font-semibold hover:underline"
-        >
+        <Link href="/" className="mt-6 font-semibold text-[var(--primary)] hover:underline">
           חזרה
         </Link>
       </div>
@@ -55,19 +53,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
-      <header className="px-4 sm:px-6 py-4 border-b border-[var(--border)] bg-[var(--card)]/80 backdrop-blur-md">
-        <Link href="/" className="text-xl font-bold gradient-text hover:opacity-90 transition-opacity">
-          מערכת כתיבה חכמה
-        </Link>
-      </header>
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm flex flex-col gap-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-[var(--foreground)]">
+    <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="flex w-full max-w-sm flex-col gap-8">
+          <div className="space-y-2 text-center">
+            <h1 className="text-3xl font-bold text-white">
               {isSignUp ? "הרשמה" : "התחברות"}
             </h1>
-            <p className="text-[var(--foreground-muted)] text-sm">
+            <p className="text-sm text-white/70">
               {isSignUp ? "צור חשבון חדש" : "התחבר כדי לשמור לארכיון"}
             </p>
           </div>
@@ -79,7 +73,7 @@ export default function AuthPage() {
               placeholder="אימייל"
               required
               dir="ltr"
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-shadow"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             />
             <input
               type="password"
@@ -88,14 +82,14 @@ export default function AuthPage() {
               placeholder="סיסמה"
               required
               minLength={6}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-shadow"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             />
             {message && (
               <p
                 className={
                   message.type === "ok"
-                    ? "text-green-600 dark:text-green-400 text-sm font-medium"
-                    : "text-red-600 dark:text-red-400 text-sm font-medium"
+                    ? "text-sm font-medium text-green-400"
+                    : "text-sm font-medium text-red-400"
                 }
                 role="alert"
               >
@@ -109,7 +103,7 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={() => setIsSignUp((v) => !v)}
-            className="text-sm text-[var(--accent)] font-medium hover:underline text-center"
+            className="text-center text-sm font-medium text-[var(--primary)] hover:underline"
           >
             {isSignUp ? "כבר יש חשבון? התחבר" : "אין חשבון? הירשם"}
           </button>

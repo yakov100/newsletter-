@@ -3,15 +3,15 @@
 import { ButtonHTMLAttributes } from "react";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 rounded-lg font-bold transition-all duration-200 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-12 px-6 text-base";
 
 const variants = {
   primary:
-    "bg-[var(--accent)] text-white shadow-md hover:bg-[var(--accent-hover)] hover:shadow-lg active:scale-[0.98] px-6 py-3 text-base",
+    "bg-[var(--primary)] text-white hover:opacity-90 active:scale-95",
   secondary:
-    "border-2 border-[var(--border-strong)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--background-subtle)] hover:border-[var(--accent)]/50 dark:border-[var(--border)] dark:hover:border-[var(--accent)]/50 px-6 py-3 text-base",
+    "bg-white/10 text-white border border-white/10 hover:bg-white/20 hover:border-white/20 active:scale-95",
   ghost:
-    "text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--background-subtle)] px-4 py-2 text-sm",
+    "text-white/60 hover:text-white hover:bg-white/10 px-4 py-2 h-auto text-sm",
 };
 
 export function PrimaryButton({

@@ -1,49 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --background-subtle: #f1f5f9;
-  --foreground: #0f172a;
-  --foreground-muted: #475569;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --accent: #0d9488;
-  --accent-hover: #0f766e;
-  --accent-light: #ccfbf1;
-  --accent-dark: #134e4a;
-  --card: #ffffff;
-  --card-hover: #f8fafc;
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
-  --radius: 1rem;
-  --radius-lg: 1.25rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --background-subtle: #1e293b;
-    --foreground: #f1f5f9;
-    --foreground-muted: #94a3b8;
-    --muted: #94a3b8;
-    --border: #334155;
-    --border-strong: #475569;
-    --accent: #2dd4bf;
-    --accent-hover: #5eead4;
-    --accent-light: #134e4a;
-    --accent-dark: #99f6e4;
-    --card: #1e293b;
-    --card-hover: #334155;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-  }
+  --primary: #135bec;
+  --background: #101622;
+  --background-light: #f6f6f8;
+  --background-subtle: #1a2332;
+  --foreground: #f1f5f9;
+  --foreground-muted: #94a3b8;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --accent: #135bec;
+  --accent-hover: #2563eb;
+  --accent-light: rgba(19, 91, 236, 0.2);
+  --accent-dark: #135bec;
+  --card: #1e293b;
+  --card-hover: #334155;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 }
 
 @theme inline {
+  --color-primary: var(--primary);
   --color-background: var(--background);
+  --color-background-light: var(--background-light);
   --color-foreground: var(--foreground);
-  --font-sans: "Heebo", system-ui, -apple-system, sans-serif;
+  --font-sans: "Space Grotesk", "Noto Sans Hebrew", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Noto Sans Hebrew", sans-serif;
 }
 
 body {
@@ -58,14 +44,24 @@ body {
   text-align: right;
 }
 
+/* Gradient mesh – default app background */
+.gradient-mesh {
+  background-color: #101622;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(19, 91, 236, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(19, 91, 236, 0.1) 0px, transparent 50%);
+}
+
 /* Focus ring for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 /* Smooth transitions on interactive elements */
-button, a, [role="button"] {
+button,
+a,
+[role="button"] {
   transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -77,19 +73,15 @@ button, a, [role="button"] {
 
 /* Gradient text for branding */
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent) 0%, #0891b2 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-@media (prefers-color-scheme: dark) {
-  .gradient-text {
-    background: linear-gradient(135deg, #2dd4bf 0%, #22d3ee 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+/* Material Symbols */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
 /* Rich editor – גופנים וסימונים */
@@ -98,34 +90,17 @@ button, a, [role="button"] {
   border-radius: 0.2em;
 }
 .ProseMirror mark[data-color="yellow"] {
-  background: #fef08a;
+  background: #854d0e;
 }
 .ProseMirror mark[data-color="green"] {
-  background: #bbf7d0;
+  background: #14532d;
 }
 .ProseMirror mark[data-color="blue"] {
-  background: #bfdbfe;
+  background: #1e3a8a;
 }
 .ProseMirror mark[data-color="pink"] {
-  background: #fbcfe8;
+  background: #831843;
 }
 .ProseMirror mark[data-color="orange"] {
-  background: #fed7aa;
-}
-@media (prefers-color-scheme: dark) {
-  .ProseMirror mark[data-color="yellow"] {
-    background: #854d0e;
-  }
-  .ProseMirror mark[data-color="green"] {
-    background: #14532d;
-  }
-  .ProseMirror mark[data-color="blue"] {
-    background: #1e3a8a;
-  }
-  .ProseMirror mark[data-color="pink"] {
-    background: #831843;
-  }
-  .ProseMirror mark[data-color="orange"] {
-    background: #9a3412;
-  }
+  background: #9a3412;
 }

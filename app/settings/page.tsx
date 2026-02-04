@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { AppHeader } from "@/components/ui/AppHeader";
 import {
   PAGE_BACKGROUND_STORAGE_KEY,
   PAGE_BACKGROUND_CHANGE_EVENT,
@@ -85,74 +86,65 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--border)] bg-[var(--card)]/80 backdrop-blur-md">
-        <Link href="/" className="text-xl font-bold gradient-text hover:opacity-90 transition-opacity">
-          מערכת כתיבה חכמה
-        </Link>
-        <Link
-          href="/"
-          className="text-sm font-medium text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--background-subtle)] px-3 py-2 rounded-lg transition-colors"
-        >
-          חזרה
-        </Link>
-      </header>
-      <main className="flex-1 px-4 py-10 max-w-2xl mx-auto w-full">
-        <div className="space-y-2 mb-8">
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">
-            הנחיות ל־AI
-          </h1>
-          <p className="text-[var(--foreground-muted)] leading-relaxed">
-            כאן מגדירים אילו רעיונות ה־AI יציע ואיזה סגנון כתיבה ישתמש. ההנחיות נשמרות ומשמשות בכל יצירת רעיונות, שלד, טיוטה והצעות עריכה.
+    <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
+        <div className="mb-8 space-y-2">
+          <h1 className="text-3xl font-bold text-white">הנחיות ל־AI</h1>
+          <p className="leading-relaxed text-white/70">
+            כאן מגדירים אילו רעיונות ה־AI יציע ואיזה סגנון כתיבה ישתמש. ההנחיות נשמרות ומשמשות
+            בכל יצירת רעיונות, שלד, טיוטה והצעות עריכה.
           </p>
         </div>
         {loading ? (
-          <p className="text-[var(--foreground-muted)] flex items-center gap-2">
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+          <p className="flex items-center gap-2 text-white/70">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
             טוען…
           </p>
         ) : (
           <div className="flex flex-col gap-8">
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-[var(--foreground)]">
+              <label className="block text-sm font-semibold text-white">
                 אילו רעיונות להציע
               </label>
-              <p className="text-xs text-[var(--foreground-muted)]">
-                הנחיות לסוכן הרעיונות: נושאים (למשל טק, שיווק, מוטיבציה), קהל יעד, טון, כמה רעיונות, מגבלות. ה־AI יחזיר כותרות ותיאורים קצרים ב־JSON.
+              <p className="text-xs text-white/70">
+                הנחיות לסוכן הרעיונות: נושאים (למשל טק, שיווק, מוטיבציה), קהל יעד, טון, כמה
+                רעיונות, מגבלות. ה־AI יחזיר כותרות ותיאורים קצרים ב־JSON.
               </p>
               <textarea
                 dir="rtl"
                 value={ideasPrompt}
                 onChange={(e) => setIdeasPrompt(e.target.value)}
                 rows={8}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-y min-h-[120px] transition-shadow"
+                className="min-h-[120px] w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
                 placeholder="למשל: הצע 3–7 רעיונות לניוזלטר בעברית. נושאים: פרודוקטיביות, קריירה, טכנולוגיה. טון מקצועי־ידידותי. ענה ב-JSON בלבד עם id, title, description."
               />
             </div>
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-[var(--foreground)]">
+              <label className="block text-sm font-semibold text-white">
                 איזה סגנון לכתוב את הכתבות
               </label>
-              <p className="text-xs text-[var(--foreground-muted)]">
-                הנחיות לסגנון: טון (רשמי/קליל/מקצועי), אורך משפטים ופסקאות, מילים או ביטויים להעדיף או להימנע מהם. משמש לשלד, טיוטה והצעות עריכה.
+              <p className="text-xs text-white/70">
+                הנחיות לסגנון: טון (רשמי/קליל/מקצועי), אורך משפטים ופסקאות, מילים או ביטויים
+                להעדיף או להימנע מהם. משמש לשלד, טיוטה והצעות עריכה.
               </p>
               <textarea
                 dir="rtl"
                 value={writingPrompt}
                 onChange={(e) => setWritingPrompt(e.target.value)}
                 rows={8}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-y min-h-[120px] transition-shadow"
+                className="min-h-[120px] w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
                 placeholder="למשל: סגנון ברור, ממוקד, ידידותי. משפטים קצרים־בינוניים. צור שלד (פתיחה, גוף, סיום) וטיוטה בטקסט גולמי בלבד."
               />
             </div>
-            <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">רקע הדף</h2>
-              <p className="text-xs text-[var(--foreground-muted)]">
+            <div className="space-y-4 border-t border-white/10 pt-4">
+              <h2 className="text-lg font-semibold text-white">רקע הדף</h2>
+              <p className="text-xs text-white/70">
                 בחר רקע לכל האתר: ברירת מחדל, צבע, גרדיאנט או תמונה.
               </p>
               <div className="flex flex-wrap gap-4">
                 {(["default", "color", "gradient", "image"] as const).map((t) => (
-                  <label key={t} className="flex items-center gap-2 cursor-pointer">
+                  <label key={t} className="flex cursor-pointer items-center gap-2">
                     <input
                       type="radio"
                       name="bgType"
@@ -163,9 +155,9 @@ export default function SettingsPage() {
                         setBgValue(val);
                         saveBackgroundPref({ type: t, value: val });
                       }}
-                      className="rounded-full border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                      className="rounded-full border-white/10 text-[var(--primary)] focus:ring-[var(--primary)]"
                     />
-                    <span className="text-sm text-[var(--foreground)]">
+                    <span className="text-sm text-white">
                       {t === "default" && "ברירת מחדל"}
                       {t === "color" && "צבע"}
                       {t === "gradient" && "גרדיאנט"}
@@ -178,13 +170,13 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
-                    value={bgValue || "#f8fafc"}
+                    value={bgValue || "#101622"}
                     onChange={(e) => {
                       const v = e.target.value;
                       setBgValue(v);
                       saveBackgroundPref({ type: "color", value: v });
                     }}
-                    className="h-10 w-14 rounded border border-[var(--border)] cursor-pointer bg-[var(--card)]"
+                    className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-white/5"
                   />
                   <input
                     type="text"
@@ -194,8 +186,8 @@ export default function SettingsPage() {
                       setBgValue(v);
                       saveBackgroundPref({ type: "color", value: v });
                     }}
-                    placeholder="#f8fafc"
-                    className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    placeholder="#101622"
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                   />
                 </div>
               )}
@@ -207,7 +199,7 @@ export default function SettingsPage() {
                     setBgValue(v);
                     saveBackgroundPref({ type: "gradient", value: v });
                   }}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 >
                   {GRADIENT_PRESETS.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -226,7 +218,7 @@ export default function SettingsPage() {
                     saveBackgroundPref({ type: "image", value: v });
                   }}
                   placeholder="https://example.com/image.jpg"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 />
               )}
             </div>
@@ -234,8 +226,8 @@ export default function SettingsPage() {
               <p
                 className={
                   message.type === "ok"
-                    ? "text-green-600 dark:text-green-400 font-medium"
-                    : "text-red-600 dark:text-red-400 font-medium"
+                    ? "font-medium text-green-400"
+                    : "font-medium text-red-400"
                 }
                 role="alert"
               >

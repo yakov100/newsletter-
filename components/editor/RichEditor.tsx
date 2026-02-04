@@ -8,7 +8,12 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import { TextStyle, Color, FontFamily } from "@tiptap/extension-text-style";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, forwardRef, useState } from "react";
+
+export interface RichEditorHandle {
+  getSelectedText(): string;
+  replaceSelection(html: string): void;
+}
 
 const FONTS = [
   { name: "ברירת מחדל", value: "" },
@@ -41,17 +46,35 @@ const HIGHLIGHT_COLORS = [
   { name: "כתום", value: "orange" },
 ];
 
-function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
+function Toolbar({
+  editor,
+  onImproveText,
+}: {
+  editor: ReturnType<typeof useEditor>;
+  onImproveText?: () => void;
+}) {
   const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+
+  useEffect(() => {
+    if (!editor) return;
+    const update = () =>
+      setWordCount(
+        editor.getText().split(/\s+/).filter(Boolean).length
+      );
+    update();
+    editor.on("update", update);
+    return () => editor.off("update", update);
+  }, [editor]);
 
   if (!editor) return null;
 
   const btn = (active: boolean) =>
     "px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors " +
     (active
-      ? "bg-[var(--accent)] text-white"
-      : "text-[var(--foreground-muted)] hover:bg-[var(--background-subtle)] hover:text-[var(--foreground)]");
+      ? "bg-[var(--primary)] text-white"
+      : "text-white/60 hover:bg-white/10 hover:text-white");
 
   const setLink = () => {
     if (linkUrl) {
@@ -64,8 +87,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   return (
     <div
       dir="rtl"
-      className="flex flex-wrap gap-1 p-2 border-b border-[var(--border)] bg-[var(--background-subtle)]/80"
+      className="flex flex-wrap items-center justify-between gap-1 border-b border-white/10 bg-white/5 p-2"
     >
+      <div className="flex flex-wrap items-center gap-1">
       {/* גופן */}
       <select
         title="גופן"
@@ -86,7 +110,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         ))}
       </select>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* מודגש, נטוי, קו תחתון, חוצה */}
       <button
@@ -130,7 +154,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         &lt;/&gt;
       </button>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* צבע טקסט */}
       <select
@@ -154,18 +178,21 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
       <div className="relative inline-block group">
         <button
           type="button"
+          onClick={() =>
+            editor.chain().focus().toggleHighlight({ color: "yellow" }).run()
+          }
           className={btn(editor.isActive("highlight"))}
           title="הדגשה"
         >
           🖍
         </button>
-        <div className="absolute top-full right-0 mt-1 p-1 rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-md)] opacity-0 invisible group-hover:opacity-100 group-hover:visible z-10 flex gap-0.5">
+        <div className="invisible absolute right-0 top-full z-10 mt-1 flex gap-0.5 rounded-lg border border-white/10 bg-[#1a2332] p-1 opacity-0 shadow-lg group-hover:visible group-hover:opacity-100">
           {HIGHLIGHT_COLORS.map((h) => (
             <button
               key={h.value}
               type="button"
               title={h.name}
-              className="w-6 h-6 rounded border border-[var(--border)] hover:scale-110 transition-transform"
+              className="h-6 w-6 rounded border border-white/10 transition-transform hover:scale-110"
               style={{
                 backgroundColor:
                   h.value === "yellow"
@@ -186,7 +213,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         </div>
       </div>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* כותרות */}
       <button
@@ -214,7 +241,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         H3
       </button>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* רשימות וציטוט */}
       <button
@@ -250,7 +277,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         —
       </button>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* יישור */}
       <button
@@ -286,7 +313,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         ≡≡
       </button>
 
-      <span className="w-px h-6 bg-[var(--border)] self-center" aria-hidden />
+      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
 
       {/* קישור */}
       {showLinkInput ? (
@@ -300,7 +327,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
               if (e.key === "Enter") setLink();
               if (e.key === "Escape") setShowLinkInput(false);
             }}
-            className="w-32 px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm"
+            className="w-32 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-white/40"
             dir="ltr"
             autoFocus
           />
@@ -338,19 +365,34 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
           הסר קישור
         </button>
       )}
+      </div>
+      {onImproveText && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onImproveText}
+            className="flex items-center gap-1 rounded px-2 py-1.5 text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/10"
+            title="שיפור טקסט"
+          >
+            <span className="material-symbols-outlined text-sm">magic_button</span>
+            <span className="text-xs font-bold">שיפור טקסט</span>
+          </button>
+          <span className="text-xs text-white/50">{wordCount} מילים</span>
+        </div>
+      )}
     </div>
   );
 }
 
-export function RichEditor({
-  value,
-  onChange,
-  placeholder = "",
-}: {
+const RichEditorInner = forwardRef<RichEditorHandle, {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
-}) {
+  onImproveText?: () => void;
+}>(function RichEditorInner(
+  { value, onChange, placeholder = "", onImproveText },
+  ref
+) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -374,7 +416,7 @@ export function RichEditor({
       attributes: {
         dir: "rtl",
         class:
-          "min-h-[200px] px-4 py-3 bg-[var(--card)] text-[var(--foreground)] focus:outline-none prose prose-slate dark:prose-invert max-w-none",
+          "min-h-[200px] px-4 py-3 bg-white/5 text-white focus:outline-none prose prose-invert max-w-none prose-p:text-white/90 prose-headings:text-white",
       },
     },
   });
@@ -398,15 +440,33 @@ export function RichEditor({
     };
   }, [editor, handleUpdate]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      getSelectedText() {
+        if (!editor) return "";
+        const { from, to } = editor.state.selection;
+        return editor.state.doc.textBetween(from, to);
+      },
+      replaceSelection(html: string) {
+        if (!editor) return;
+        editor.chain().focus().insertContent(html).run();
+      },
+    }),
+    [editor]
+  );
+
   if (!editor) return null;
 
   return (
     <div
       dir="rtl"
-      className="rounded-2xl border border-[var(--border)] overflow-hidden shadow-[var(--shadow)]"
+      className="overflow-hidden rounded-xl border border-white/10 shadow-lg"
     >
-      <Toolbar editor={editor} />
+      <Toolbar editor={editor} onImproveText={onImproveText} />
       <EditorContent editor={editor} />
     </div>
   );
-}
+});
+
+export const RichEditor = RichEditorInner;
