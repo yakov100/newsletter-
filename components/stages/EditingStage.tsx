@@ -294,7 +294,7 @@ export function EditingStage() {
           draft: plainText,
         }),
       });
-      let data: { error?: string; items?: unknown[]; summary?: string; allVerified?: boolean; usedWebSearch?: boolean };
+      let data: { error?: string } & Partial<OutlineValidationResult>;
       try {
         data = await res.json();
       } catch {
