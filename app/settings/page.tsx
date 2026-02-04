@@ -90,24 +90,24 @@ export default function SettingsPage() {
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
         <div className="mb-8 space-y-2">
-          <h1 className="text-3xl font-bold text-white">הנחיות ל־AI</h1>
-          <p className="leading-relaxed text-white/70">
+          <h1 className="text-3xl font-bold text-foreground">הנחיות ל־AI</h1>
+          <p className="leading-relaxed text-muted">
             כאן מגדירים אילו רעיונות ה־AI יציע ואיזה סגנון כתיבה ישתמש. ההנחיות נשמרות ומשמשות
             בכל יצירת רעיונות, שלד, טיוטה והצעות עריכה.
           </p>
         </div>
         {loading ? (
-          <p className="flex items-center gap-2 text-white/70">
+          <p className="flex items-center gap-2 text-muted">
             <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
             טוען…
           </p>
         ) : (
           <div className="flex flex-col gap-8">
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-foreground">
                 אילו רעיונות להציע
               </label>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-muted">
                 הנחיות לסוכן הרעיונות: נושאים (למשל טק, שיווק, מוטיבציה), קהל יעד, טון, כמה
                 רעיונות, מגבלות. ה־AI יחזיר כותרות ותיאורים קצרים ב־JSON.
               </p>
@@ -116,15 +116,15 @@ export default function SettingsPage() {
                 value={ideasPrompt}
                 onChange={(e) => setIdeasPrompt(e.target.value)}
                 rows={8}
-                className="min-h-[120px] w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+                className="min-h-[120px] w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
                 placeholder="למשל: הצע 3–7 רעיונות לניוזלטר בעברית. נושאים: פרודוקטיביות, קריירה, טכנולוגיה. טון מקצועי־ידידותי. ענה ב-JSON בלבד עם id, title, description."
               />
             </div>
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-foreground">
                 איזה סגנון לכתוב את הכתבות
               </label>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-muted">
                 הנחיות לסגנון: טון (רשמי/קליל/מקצועי), אורך משפטים ופסקאות, מילים או ביטויים
                 להעדיף או להימנע מהם. משמש לשלד, טיוטה והצעות עריכה.
               </p>
@@ -133,13 +133,13 @@ export default function SettingsPage() {
                 value={writingPrompt}
                 onChange={(e) => setWritingPrompt(e.target.value)}
                 rows={8}
-                className="min-h-[120px] w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+                className="min-h-[120px] w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
                 placeholder="למשל: סגנון ברור, ממוקד, ידידותי. משפטים קצרים־בינוניים. צור שלד (פתיחה, גוף, סיום) וטיוטה בטקסט גולמי בלבד."
               />
             </div>
-            <div className="space-y-4 border-t border-white/10 pt-4">
-              <h2 className="text-lg font-semibold text-white">רקע הדף</h2>
-              <p className="text-xs text-white/70">
+            <div className="space-y-4 border-t border-border pt-4">
+              <h2 className="text-lg font-semibold text-foreground">רקע הדף</h2>
+              <p className="text-xs text-muted">
                 בחר רקע לכל האתר: ברירת מחדל, צבע, גרדיאנט או תמונה.
               </p>
               <div className="flex flex-wrap gap-4">
@@ -155,9 +155,9 @@ export default function SettingsPage() {
                         setBgValue(val);
                         saveBackgroundPref({ type: t, value: val });
                       }}
-                      className="rounded-full border-white/10 text-[var(--primary)] focus:ring-[var(--primary)]"
+                      className="rounded-full border-border text-[var(--primary)] focus:ring-[var(--primary)]"
                     />
-                    <span className="text-sm text-white">
+                    <span className="text-sm text-foreground">
                       {t === "default" && "ברירת מחדל"}
                       {t === "color" && "צבע"}
                       {t === "gradient" && "גרדיאנט"}
@@ -170,13 +170,13 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
-                    value={bgValue || "#101622"}
+                    value={bgValue || "#f0fdf4"}
                     onChange={(e) => {
                       const v = e.target.value;
                       setBgValue(v);
                       saveBackgroundPref({ type: "color", value: v });
                     }}
-                    className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-white/5"
+                    className="h-10 w-14 cursor-pointer rounded border border-border bg-background"
                   />
                   <input
                     type="text"
@@ -186,8 +186,8 @@ export default function SettingsPage() {
                       setBgValue(v);
                       saveBackgroundPref({ type: "color", value: v });
                     }}
-                    placeholder="#101622"
-                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    placeholder="#f0fdf4"
+                    className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                   />
                 </div>
               )}
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                     setBgValue(v);
                     saveBackgroundPref({ type: "gradient", value: v });
                   }}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 >
                   {GRADIENT_PRESETS.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -218,7 +218,7 @@ export default function SettingsPage() {
                     saveBackgroundPref({ type: "image", value: v });
                   }}
                   placeholder="https://example.com/image.jpg"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 />
               )}
             </div>

@@ -46,12 +46,44 @@ const HIGHLIGHT_COLORS = [
   { name: "כתום", value: "orange" },
 ];
 
+/** צבעי רקע לאזור הטיוטה */
+const DRAFT_BACKGROUNDS = [
+  { name: "ברירת מחדל", value: "#ffffff" },
+  { name: "פסטל סגול", value: "#f5f3ff" },
+  { name: "פסטל תכלת", value: "#eff6ff" },
+  { name: "פסטל ורוד", value: "#fdf2f8" },
+  { name: "פסטל מנטה", value: "#f0fdf4" },
+  { name: "אפור בהיר", value: "#f8fafc" },
+  { name: "כהה", value: "#1e293b" },
+];
+
+/** צבעי טקסט ברירת מחדל לטיוטה */
+const DRAFT_TEXT_COLORS = [
+  { name: "ברירת מחדל", value: "#1e1b4b" },
+  { name: "שחור", value: "#0f172a" },
+  { name: "אפור", value: "#64748b" },
+  { name: "לבן", value: "#ffffff" },
+  { name: "טורקיז", value: "#0d9488" },
+  { name: "כחול", value: "#2563eb" },
+  { name: "סגול", value: "#7c3aed" },
+  { name: "ורוד", value: "#db2777" },
+];
+
+export interface DraftTheme {
+  backgroundColor: string;
+  textColor: string;
+}
+
 function Toolbar({
   editor,
   onImproveText,
+  draftTheme,
+  onDraftThemeChange,
 }: {
   editor: ReturnType<typeof useEditor>;
   onImproveText?: () => void;
+  draftTheme: DraftTheme;
+  onDraftThemeChange?: (theme: DraftTheme) => void;
 }) {
   const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
@@ -65,7 +97,9 @@ function Toolbar({
       );
     update();
     editor.on("update", update);
-    return () => editor.off("update", update);
+    return () => {
+      editor.off("update", update);
+    };
   }, [editor]);
 
   if (!editor) return null;
@@ -74,7 +108,7 @@ function Toolbar({
     "px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors " +
     (active
       ? "bg-[var(--primary)] text-white"
-      : "text-white/60 hover:bg-white/10 hover:text-white");
+      : "text-muted hover:bg-card hover:text-foreground");
 
   const setLink = () => {
     if (linkUrl) {
@@ -87,7 +121,7 @@ function Toolbar({
   return (
     <div
       dir="rtl"
-      className="flex flex-wrap items-center justify-between gap-1 border-b border-white/10 bg-white/5 p-2"
+      className="flex flex-wrap items-center justify-between gap-1 border-b border-border bg-card p-2"
     >
       <div className="flex flex-wrap items-center gap-1">
       {/* גופן */}
@@ -110,7 +144,7 @@ function Toolbar({
         ))}
       </select>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* מודגש, נטוי, קו תחתון, חוצה */}
       <button
@@ -154,7 +188,7 @@ function Toolbar({
         &lt;/&gt;
       </button>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* צבע טקסט */}
       <select
@@ -186,13 +220,13 @@ function Toolbar({
         >
           🖍
         </button>
-        <div className="invisible absolute right-0 top-full z-10 mt-1 flex gap-0.5 rounded-lg border border-white/10 bg-[#1a2332] p-1 opacity-0 shadow-lg group-hover:visible group-hover:opacity-100">
+        <div className="invisible absolute right-0 top-full z-10 mt-1 flex gap-0.5 rounded-lg border border-border bg-card p-1 opacity-0 shadow-lg group-hover:visible group-hover:opacity-100">
           {HIGHLIGHT_COLORS.map((h) => (
             <button
               key={h.value}
               type="button"
               title={h.name}
-              className="h-6 w-6 rounded border border-white/10 transition-transform hover:scale-110"
+              className="h-6 w-6 rounded border border-border transition-transform hover:scale-110"
               style={{
                 backgroundColor:
                   h.value === "yellow"
@@ -213,7 +247,7 @@ function Toolbar({
         </div>
       </div>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* כותרות */}
       <button
@@ -241,7 +275,7 @@ function Toolbar({
         H3
       </button>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* רשימות וציטוט */}
       <button
@@ -277,7 +311,7 @@ function Toolbar({
         —
       </button>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* יישור */}
       <button
@@ -313,7 +347,7 @@ function Toolbar({
         ≡≡
       </button>
 
-      <span className="h-6 w-px bg-white/10 self-center" aria-hidden />
+      <span className="h-6 w-px bg-border self-center" aria-hidden />
 
       {/* קישור */}
       {showLinkInput ? (
@@ -327,7 +361,7 @@ function Toolbar({
               if (e.key === "Enter") setLink();
               if (e.key === "Escape") setShowLinkInput(false);
             }}
-            className="w-32 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-white/40"
+            className="w-32 rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground placeholder:text-muted"
             dir="ltr"
             autoFocus
           />
@@ -365,6 +399,65 @@ function Toolbar({
           הסר קישור
         </button>
       )}
+
+      {/* צבעי טיוטה – רקע וצבע טקסט */}
+      {onDraftThemeChange && (
+        <>
+          <span className="h-6 w-px bg-border self-center" aria-hidden />
+          <div className="relative inline-block group">
+            <button
+              type="button"
+              className={btn(false)}
+              title="צבעי טיוטה"
+            >
+              <span className="material-symbols-outlined text-sm">palette</span>
+            </button>
+            <div className="invisible absolute right-0 top-full z-20 mt-1 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 opacity-0 shadow-xl group-hover:visible group-hover:opacity-100 min-w-[200px]">
+              <span className="text-xs font-bold text-foreground">צבעי טיוטה</span>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted">רקע</label>
+                <select
+                  title="רקע טיוטה"
+                  className="w-full cursor-pointer rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+                  value={draftTheme.backgroundColor}
+                  onChange={(e) =>
+                    onDraftThemeChange({
+                      ...draftTheme,
+                      backgroundColor: e.target.value,
+                    })
+                  }
+                >
+                  {DRAFT_BACKGROUNDS.map((b) => (
+                    <option key={b.value} value={b.value}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted">צבע טקסט</label>
+                <select
+                  title="צבע טקסט טיוטה"
+                  className="w-full cursor-pointer rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+                  value={draftTheme.textColor}
+                  onChange={(e) =>
+                    onDraftThemeChange({
+                      ...draftTheme,
+                      textColor: e.target.value,
+                    })
+                  }
+                >
+                  {DRAFT_TEXT_COLORS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       </div>
       {onImproveText && (
         <div className="flex items-center gap-2">
@@ -377,20 +470,27 @@ function Toolbar({
             <span className="material-symbols-outlined text-sm">magic_button</span>
             <span className="text-xs font-bold">שיפור טקסט</span>
           </button>
-          <span className="text-xs text-white/50">{wordCount} מילים</span>
+          <span className="text-xs text-muted">{wordCount} מילים</span>
         </div>
       )}
     </div>
   );
 }
 
+export const DEFAULT_DRAFT_THEME: DraftTheme = {
+  backgroundColor: "#ffffff",
+  textColor: "#1e1b4b",
+};
+
 const RichEditorInner = forwardRef<RichEditorHandle, {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   onImproveText?: () => void;
+  draftTheme?: DraftTheme;
+  onDraftThemeChange?: (theme: DraftTheme) => void;
 }>(function RichEditorInner(
-  { value, onChange, placeholder = "", onImproveText },
+  { value, onChange, placeholder = "", onImproveText, draftTheme = DEFAULT_DRAFT_THEME, onDraftThemeChange },
   ref
 ) {
   const editor = useEditor({
@@ -416,7 +516,7 @@ const RichEditorInner = forwardRef<RichEditorHandle, {
       attributes: {
         dir: "rtl",
         class:
-          "min-h-[200px] px-4 py-3 bg-white/5 text-white focus:outline-none prose prose-invert max-w-none prose-p:text-white/90 prose-headings:text-white",
+          "min-h-[200px] px-4 py-3 bg-transparent focus:outline-none prose max-w-none prose-p:text-foreground prose-headings:text-foreground",
       },
     },
   });
@@ -461,10 +561,23 @@ const RichEditorInner = forwardRef<RichEditorHandle, {
   return (
     <div
       dir="rtl"
-      className="overflow-hidden rounded-xl border border-white/10 shadow-lg"
+      className="overflow-hidden rounded-xl border border-border shadow-lg"
     >
-      <Toolbar editor={editor} onImproveText={onImproveText} />
-      <EditorContent editor={editor} />
+      <Toolbar
+        editor={editor}
+        onImproveText={onImproveText}
+        draftTheme={draftTheme}
+        onDraftThemeChange={onDraftThemeChange}
+      />
+      <div
+        className="min-h-[200px] px-4 py-3"
+        style={{
+          backgroundColor: draftTheme.backgroundColor,
+          color: draftTheme.textColor,
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 });

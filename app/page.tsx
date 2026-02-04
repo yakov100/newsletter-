@@ -32,7 +32,7 @@ function MainContent() {
           </div>
         )}
       </main>
-      <footer className="p-10 text-center text-xs text-white/30">
+      <footer className="p-10 text-center text-xs text-muted">
         © 2024 עוזר כתיבה AI — כל הזכויות שמורות
       </footer>
     </>

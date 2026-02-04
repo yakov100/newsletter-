@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/state/session-context";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 
 export function CompletionStage() {
   const { session, resetSession, goToStage } = useSession();
@@ -64,77 +62,36 @@ export function CompletionStage() {
 
   const handleDownloadPdf = async () => {
     const title = selectedIdea?.title ?? "כתבה ללא כותרת";
-    const htmlContent = finalContent || "<p>אין תוכן.</p>";
-    const safeTitle = title.replace(/</g, "&lt;");
+    const fileName = `${title.replace(/[^\p{L}\p{N}\s-]/gu, "").trim() || "article"}.pdf`;
 
     setPdfLoading(true);
     setShareFeedback("");
 
-    const container = document.createElement("div");
-    container.dir = "rtl";
-    container.lang = "he";
-    container.style.cssText = [
-      "position:fixed",
-      "left:-9999px",
-      "top:0",
-      "width:794px",
-      "padding:40px",
-      "backgroundColor:#fff",
-      "color:#0f172a",
-      "fontFamily:'Heebo','Assistant',sans-serif",
-      "boxSizing:border-box",
-    ].join(";");
-
-    container.innerHTML = `
-      <h1 style="fontSize:28px;marginBottom:8px;">${safeTitle}</h1>
-      <div style="color:#64748b;fontSize:14px;marginBottom:24px;">${dateLabel}</div>
-      <article style="lineHeight:1.7;">
-        ${htmlContent}
-      </article>
-    `;
-
-    document.body.appendChild(container);
-
     try {
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          dateLabel,
+          htmlContent: finalContent || "<p>אין תוכן.</p>",
+        }),
       });
-
-      document.body.removeChild(container);
-
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 40;
-      const contentW = pageW - margin * 2;
-      const imgW = contentW;
-      const imgH = (canvas.height * contentW) / canvas.width;
-      const imgData = canvas.toDataURL("image/png", 1.0);
-      const pageHeight = pageH - margin * 2;
-      let heightLeft = imgH;
-      let pageNum = 0;
-
-      pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
-      heightLeft -= pageHeight;
-      pageNum = 1;
-
-      while (heightLeft > 0) {
-        pdf.addPage();
-        const y = margin - pageNum * pageHeight;
-        pdf.addImage(imgData, "PNG", margin, y, imgW, imgH);
-        heightLeft -= pageHeight;
-        pageNum++;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "PDF failed");
       }
-
-      const fileName = `${title.replace(/[^\p{L}\p{N}\s-]/gu, "").trim() || "article"}.pdf`;
-      pdf.save(fileName);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
-      document.body.contains(container) && document.body.removeChild(container);
-      setShareFeedback("יצירת PDF נכשלה — נסה שוב");
-      setTimeout(() => setShareFeedback(""), 3000);
+      const msg = err instanceof Error ? err.message : "יצירת PDF נכשלה — נסה שוב";
+      setShareFeedback(msg);
+      setTimeout(() => setShareFeedback(""), 5000);
     } finally {
       setPdfLoading(false);
     }
@@ -177,14 +134,14 @@ export function CompletionStage() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-lg font-bold text-[var(--primary)]">שלב 5: סיום ושמירה</p>
-            <p className="text-sm font-medium text-white/80">100%</p>
+            <p className="text-sm font-medium text-foreground">100%</p>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-card">
             <div
-              className="h-full w-full rounded-full bg-[var(--primary)] shadow-[0_0_10px_rgba(19,91,236,0.5)]"
+              className="h-full w-full rounded-full bg-[var(--primary)] shadow-[0_0_10px_rgba(99,102,241,0.5)]"
             />
           </div>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-muted">
             התהליך הושלם בהצלחה! הכתבה שלך מוכנה.
           </p>
         </div>
@@ -194,7 +151,7 @@ export function CompletionStage() {
       {shareFeedback && (
         <div
           role="status"
-          className="fixed bottom-6 start-1/2 z-50 -translate-x-1/2 rounded-lg border border-white/20 bg-[#101622] px-4 py-3 text-sm text-white shadow-xl"
+          className="fixed bottom-6 start-1/2 z-50 -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-xl"
         >
           {shareFeedback}
         </div>
@@ -208,8 +165,8 @@ export function CompletionStage() {
               check_circle
             </span>
             <div className="flex flex-col">
-              <p className="font-bold leading-tight text-white">הכתבה נשמרה בהצלחה!</p>
-              <p className="text-sm text-white/60">
+              <p className="font-bold leading-tight text-foreground">הכתבה נשמרה בהצלחה!</p>
+              <p className="text-sm text-muted">
                 התוכן זמין כעת בארכיון האישי שלך וניתן להעתקה.
               </p>
             </div>
@@ -227,15 +184,15 @@ export function CompletionStage() {
       )}
 
       {/* Article Preview Card */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] shadow-xl">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         {/* Toolbar */}
-        <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-6 py-4">
-          <h3 className="font-bold text-white/80">תצוגה מקדימה</h3>
+        <div className="flex items-center justify-between border-b border-border bg-background px-6 py-4">
+          <h3 className="font-bold text-foreground">תצוגה מקדימה</h3>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card"
             >
               <span className="material-symbols-outlined text-sm">content_copy</span>
               {copyFeedback ? "הועתק" : "העתק ללוח"}
@@ -244,7 +201,7 @@ export function CompletionStage() {
               type="button"
               onClick={handleDownloadPdf}
               disabled={pdfLoading}
-              className="flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
               title="הדפס / שמור כ-PDF"
             >
               <span className="material-symbols-outlined text-sm">download</span>
@@ -255,11 +212,11 @@ export function CompletionStage() {
 
         {/* Content */}
         <div className="p-8 sm:p-12">
-          <header className="mb-8 border-b border-white/10 pb-8">
-            <h1 className="mb-4 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+          <header className="mb-8 border-b border-border pb-8">
+            <h1 className="mb-4 text-3xl font-extrabold leading-tight text-foreground sm:text-4xl">
               {selectedIdea?.title ?? "כתבה ללא כותרת"}
             </h1>
-            <div className="flex items-center gap-3 text-sm text-white/50">
+            <div className="flex items-center gap-3 text-sm text-muted">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--primary)]/20 text-[var(--primary)]">
                 <span className="material-symbols-outlined text-xs">auto_awesome</span>
               </div>
@@ -269,7 +226,7 @@ export function CompletionStage() {
             </div>
           </header>
           <article
-            className="prose prose-invert max-w-none space-y-6 text-lg leading-relaxed prose-p:text-white/80 prose-headings:text-white"
+            className="prose max-w-none space-y-6 text-lg leading-relaxed prose-p:text-foreground prose-headings:text-foreground"
             dangerouslySetInnerHTML={{
               __html: finalContent || "<p>אין תוכן.</p>",
             }}
@@ -279,7 +236,7 @@ export function CompletionStage() {
 
       {/* Errors / Auth */}
       {(archiveStatus === "auth" || archiveMessage === "התחבר כדי לשמור לארכיון") && (
-        <p className="mt-4 text-center text-sm text-white/70">
+        <p className="mt-4 text-center text-sm text-muted">
           <Link href="/auth" className="font-medium text-[var(--primary)] hover:underline">
             התחבר
           </Link>{" "}
@@ -293,11 +250,11 @@ export function CompletionStage() {
       )}
 
       {/* Bottom Actions */}
-      <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-white/10 pt-8 sm:flex-row">
+      <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-border pt-8 sm:flex-row">
         <button
           type="button"
           onClick={() => goToStage("editing")}
-          className="flex items-center gap-2 font-medium text-white/60 transition-colors hover:text-[var(--primary)]"
+          className="flex items-center gap-2 font-medium text-muted transition-colors hover:text-[var(--primary)]"
         >
           <span className="material-symbols-outlined rotate-180">arrow_forward</span>
           חזור לעריכה
@@ -306,7 +263,7 @@ export function CompletionStage() {
           <button
             type="button"
             onClick={handleShare}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-8 py-3 font-bold text-white transition-all hover:bg-white/20 sm:flex-none"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-card px-8 py-3 font-bold text-foreground transition-all hover:bg-card-hover sm:flex-none"
             title="שתף את הכתבה"
           >
             <span className="material-symbols-outlined">share</span>
@@ -326,7 +283,7 @@ export function CompletionStage() {
 
       {/* Suggested Articles */}
       <section className="mt-20">
-        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-white">
+        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-foreground">
           <span className="material-symbols-outlined text-[var(--primary)]">lightbulb</span>
           כתבות נוספות שאולי יעניינו אותך
         </h3>
@@ -334,17 +291,17 @@ export function CompletionStage() {
           <button
             type="button"
             onClick={resetSession}
-            className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 text-right transition-shadow hover:shadow-lg"
+            className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-right transition-shadow hover:shadow-lg"
           >
-            <div className="aspect-video w-full bg-gradient-to-br from-[var(--primary)]/20 to-white/5" />
+            <div className="aspect-video w-full bg-gradient-to-br from-[var(--primary)]/20 to-background-subtle" />
             <div className="p-5">
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
                 טכנולוגיה
               </p>
-              <h4 className="mb-2 text-lg font-bold text-white">
+              <h4 className="mb-2 text-lg font-bold text-foreground">
                 10 כלים לשיפור הפרודוקטיביות ב-2024
               </h4>
-              <p className="line-clamp-2 text-sm text-white/50">
+              <p className="line-clamp-2 text-sm text-muted">
                 גלו את הכלים שיעזרו לכם לנהל את הזמן שלכם טוב יותר ולסיים מטלות בקלות...
               </p>
             </div>
@@ -352,17 +309,17 @@ export function CompletionStage() {
           <button
             type="button"
             onClick={resetSession}
-            className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 text-right transition-shadow hover:shadow-lg"
+            className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-right transition-shadow hover:shadow-lg"
           >
-            <div className="aspect-video w-full bg-gradient-to-br from-[var(--primary)]/10 to-white/5" />
+            <div className="aspect-video w-full bg-gradient-to-br from-[var(--primary)]/10 to-background-subtle" />
             <div className="p-5">
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
                 קריאייטיב
               </p>
-              <h4 className="mb-2 text-lg font-bold text-white">
+              <h4 className="mb-2 text-lg font-bold text-foreground">
                 איך למצוא השראה כשנגמרים הרעיונות
               </h4>
-              <p className="line-clamp-2 text-sm text-white/50">
+              <p className="line-clamp-2 text-sm text-muted">
                 מדריך מעשי להתגברות על "מחסום כתיבה" ומציאת נקודות מבט חדשות ומעניינות...
               </p>
             </div>

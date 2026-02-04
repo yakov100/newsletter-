@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className="dark scroll-smooth">
+    <html lang="he" dir="rtl" className="scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -26,7 +26,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased text-white font-sans">
+      <body className="min-h-screen antialiased text-foreground font-sans">
         <div className="relative flex min-h-screen w-full flex-col gradient-mesh overflow-x-hidden">
           <PageBackground />
           {children}

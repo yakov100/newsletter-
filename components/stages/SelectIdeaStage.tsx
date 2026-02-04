@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/state/session-context";
 import type { Idea } from "@/types/idea";
 
@@ -31,13 +31,13 @@ function IdeaCard({
       className={
         "flex flex-col overflow-hidden rounded-xl transition-all " +
         (selected
-          ? "border-2 border-[var(--primary)] bg-[#1a2333] shadow-lg shadow-[var(--primary)]/10"
-          : "border border-white/10 bg-[#1a2333] hover:border-[var(--primary)]/50")
+          ? "border-2 border-[var(--primary)] bg-card shadow-lg shadow-[var(--primary)]/10"
+          : "border border-border bg-card hover:border-[var(--primary)]/50")
       }
     >
       <div className="flex flex-1 flex-col gap-3 p-5 text-right">
-        <h3 className="text-lg font-bold leading-snug text-white">{idea.title}</h3>
-        <p className="flex-1 text-sm font-normal leading-relaxed text-white/60">
+        <h3 className="text-lg font-bold leading-snug text-foreground">{idea.title}</h3>
+        <p className="flex-1 text-sm font-normal leading-relaxed text-muted">
           {idea.description}
         </p>
         {validation !== undefined && (
@@ -79,7 +79,7 @@ function IdeaCard({
 }
 
 export function SelectIdeaStage() {
-  const { session, setIdeas, selectIdea, goToStage } = useSession();
+  const { session, setIdeas, selectIdea, setOutline, setDraftContent, setEditedContent, setAllDrafts, goToStage } = useSession();
   const { ideas, selectedIdea } = session;
   const [customTitle, setCustomTitle] = useState("");
   const [customDescription, setCustomDescription] = useState("");
@@ -88,6 +88,7 @@ export function SelectIdeaStage() {
   const [validations, setValidations] = useState<IdeaValidation[] | null>(null);
   const [validationsLoading, setValidationsLoading] = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const autoValidatedForRef = useRef<string>("");
 
   const handleValidateIdeas = async () => {
     if (!ideas.length) return;
@@ -107,6 +108,14 @@ export function SelectIdeaStage() {
       setValidationsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (ideas.length === 0) return;
+    const key = ideas.map((i) => i.title).join("|");
+    if (autoValidatedForRef.current === key) return;
+    autoValidatedForRef.current = key;
+    handleValidateIdeas();
+  }, [ideas]);
 
   const handleReplaceIdeas = async () => {
     setReplaceLoading(true);
@@ -130,6 +139,10 @@ export function SelectIdeaStage() {
 
   const handleSelectIdea = (idea: Idea) => {
     selectIdea(idea);
+    setOutline(""); // שלד חדש ייטען לפי הרעיון הנבחר
+    setDraftContent("");
+    setEditedContent("");
+    setAllDrafts(null);
     goToStage("writing");
   };
 
@@ -144,6 +157,10 @@ export function SelectIdeaStage() {
     };
     setIdeas([...ideas, newIdea]);
     selectIdea(newIdea);
+    setOutline("");
+    setDraftContent("");
+    setEditedContent("");
+    setAllDrafts(null);
     goToStage("writing");
     setCustomTitle("");
     setCustomDescription("");
@@ -158,21 +175,21 @@ export function SelectIdeaStage() {
           <button
             type="button"
             onClick={() => goToStage("ideas")}
-            className="text-sm font-medium leading-normal text-white/60 hover:underline"
+            className="text-sm font-medium leading-normal text-muted hover:underline"
           >
             שלב 1: יצירת רעיונות
           </button>
-          <span className="text-sm font-medium leading-normal text-white/50">/</span>
+          <span className="text-sm font-medium leading-normal text-muted">/</span>
           <span className="text-sm font-bold leading-normal text-[var(--primary)]">
             שלב 2: בחירת רעיון
           </span>
         </div>
         <div className="flex min-w-[200px] flex-col gap-2">
           <div className="flex justify-between gap-4">
-            <p className="text-xs font-medium text-white/80">התקדמות: 40%</p>
-            <p className="text-xs text-white/50">שלב 2 מתוך 5</p>
+            <p className="text-xs font-medium text-foreground">התקדמות: 40%</p>
+            <p className="text-xs text-muted">שלב 2 מתוך 5</p>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="h-1.5 overflow-hidden rounded-full bg-card">
             <div
               className="h-full rounded-full bg-[var(--primary)]"
               style={{ width: "40%" }}
@@ -184,10 +201,10 @@ export function SelectIdeaStage() {
       {/* Page Heading */}
       <div className="mb-8 flex flex-wrap justify-between gap-3">
         <div className="flex min-w-72 flex-col gap-2">
-          <h1 className="text-3xl font-black leading-tight tracking-tight text-white md:text-4xl">
+          <h1 className="text-3xl font-black leading-tight tracking-tight text-foreground md:text-4xl">
             בחרו את הרעיון המנצח
           </h1>
-          <p className="max-w-2xl text-base font-normal leading-normal text-white/60">
+          <p className="max-w-2xl text-base font-normal leading-normal text-muted">
             הנה כמה כיוונים מעניינים שהבינה המלאכותית יצרה עבורכם. בחרו את האחד שהכי מתאים
             למטרות שלכם והמשיכו לכתיבת הטיוטה.
           </p>
@@ -207,6 +224,12 @@ export function SelectIdeaStage() {
         ))}
       </div>
 
+      {ideas.length > 0 && validationsLoading && (
+        <p className="mb-4 text-center text-sm text-muted">
+          בודק נכונות מול הרשת…
+        </p>
+      )}
+
       {ideas.length > 0 && (
         <div className="mb-6 flex flex-col items-center gap-2">
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -216,13 +239,13 @@ export function SelectIdeaStage() {
               disabled={validationsLoading}
               className="text-sm font-medium text-[var(--primary)] hover:underline disabled:opacity-50"
             >
-              {validationsLoading ? "בודק…" : "AI יבדוק אם ההצעות נכונות"}
+              {validationsLoading ? "בודק…" : "בדוק שוב"}
             </button>
             <button
               type="button"
               onClick={handleReplaceIdeas}
               disabled={replaceLoading}
-              className="text-sm font-medium text-white/60 hover:underline disabled:opacity-50"
+              className="text-sm font-medium text-muted hover:underline disabled:opacity-50"
             >
               {replaceLoading ? "מחליף רעיונות…" : "החלף ל־3 רעיונות אחרים"}
             </button>
@@ -236,12 +259,12 @@ export function SelectIdeaStage() {
       )}
 
       {/* Footer Options */}
-      <div className="flex flex-col gap-6 border-t border-white/10 pt-8 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-6 border-t border-border pt-8 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-4">
           <button
             type="button"
             onClick={() => goToStage("ideas")}
-            className="flex items-center gap-2 rounded-lg border border-white/20 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10"
+            className="flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-card"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
             חזור ליצירת רעיונות
@@ -255,7 +278,7 @@ export function SelectIdeaStage() {
             הזן רעיון משלך
           </button>
         </div>
-        <p className="text-xs italic text-white/50">
+        <p className="text-xs italic text-muted">
           * ניתן לשנות את הבחירה גם בשלבים הבאים
         </p>
       </div>
@@ -264,9 +287,9 @@ export function SelectIdeaStage() {
       {showCustomForm && (
         <form
           onSubmit={handleAddCustomIdea}
-          className="mt-6 flex flex-col gap-4 rounded-xl border-2 border-dashed border-white/10 bg-white/5 p-5"
+          className="mt-6 flex flex-col gap-4 rounded-xl border-2 border-dashed border-border bg-card p-5"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/70">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
             הזן רעיון משלך
           </h2>
           <input
@@ -274,7 +297,7 @@ export function SelectIdeaStage() {
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
             placeholder="כותרת הרעיון"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             dir="rtl"
           />
           <textarea
@@ -282,7 +305,7 @@ export function SelectIdeaStage() {
             onChange={(e) => setCustomDescription(e.target.value)}
             placeholder="תיאור (אופציונלי)"
             rows={2}
-            className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             dir="rtl"
           />
           <button

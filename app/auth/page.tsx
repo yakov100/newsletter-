@@ -19,7 +19,7 @@ export default function AuthPage() {
   if (!supabase) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="max-w-sm text-center text-white/70">
+        <p className="max-w-sm text-center text-muted">
           התחברות לא מוגדרת. הגדר NEXT_PUBLIC_SUPABASE_URL ו-NEXT_PUBLIC_SUPABASE_ANON_KEY.
         </p>
         <Link href="/" className="mt-6 font-semibold text-[var(--primary)] hover:underline">
@@ -58,10 +58,10 @@ export default function AuthPage() {
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="flex w-full max-w-sm flex-col gap-8">
           <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-foreground">
               {isSignUp ? "הרשמה" : "התחברות"}
             </h1>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-muted">
               {isSignUp ? "צור חשבון חדש" : "התחבר כדי לשמור לארכיון"}
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function AuthPage() {
               placeholder="אימייל"
               required
               dir="ltr"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             />
             <input
               type="password"
@@ -82,7 +82,7 @@ export default function AuthPage() {
               placeholder="סיסמה"
               required
               minLength={6}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-shadow"
             />
             {message && (
               <p

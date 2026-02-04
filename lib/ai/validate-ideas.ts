@@ -1,8 +1,91 @@
+import { webSearch, type WebSearchResult } from "./web-search";
+
 export interface IdeaValidation {
   title: string;
   description: string;
   valid: boolean;
   reason?: string;
+}
+
+const SEARCH_RESULTS_PER_IDEA = 4;
+
+type OpenAIClient = InstanceType<typeof import("openai").default>;
+
+/**
+ * שופט כל רעיון מול תוצאות החיפוש: valid (יש סימוכין/סיפור אמיתי) או invalid + reason.
+ */
+async function judgeIdeasWithSearchResults(
+  openai: OpenAIClient,
+  ideasWithResults: Array<{
+    title: string;
+    description: string;
+    results: WebSearchResult[];
+  }>
+): Promise<IdeaValidation[]> {
+  if (ideasWithResults.length === 0) return [];
+
+  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const input = ideasWithResults
+    .map(
+      (item, i) =>
+        `[${i + 1}] כותרת: ${item.title}\n   תיאור: ${item.description ?? "-"}\n   תוצאות חיפוש:\n${item.results
+          .map((r) => `   - ${r.title}: ${r.snippet}\n     ${r.link}`)
+          .join("\n")}`
+    )
+    .join("\n\n");
+
+  const prompt = `בדוק כל רעיון לכתבה מול תוצאות החיפוש. לכל רעיון קבע:
+- valid: true – יש סימוכין ברשת (הסיפור/הנושא אמיתי, מתועד, לא מומצא).
+- valid: false – אין סימוכין, מומצא, או לא רלוונטי; תן reason קצר בעברית.
+
+החזר JSON בלבד:
+{"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false"}]}
+
+נתונים:
+${input}`;
+
+  const res = await openai.chat.completions.create({
+    model,
+    messages: [
+      {
+        role: "system",
+        content:
+          "אתה בודק רעיונות לכתבות מול תוצאות חיפוש ברשת. החזר JSON בלבד במבנה results, כל איבר עם title, description, valid, reason (אופציונלי).",
+      },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  const content = res.choices[0]?.message?.content?.trim();
+  if (!content) {
+    return ideasWithResults.map((item) => ({
+      title: item.title,
+      description: item.description ?? "",
+      valid: true,
+      reason: undefined,
+    }));
+  }
+
+  try {
+    const parsed = JSON.parse(content) as { results?: IdeaValidation[] };
+    const results = parsed.results ?? [];
+    return ideasWithResults.map((item, i) => {
+      const r = results[i];
+      return {
+        title: item.title,
+        description: item.description ?? "",
+        valid: r ? Boolean(r.valid) : true,
+        reason: r?.reason,
+      };
+    });
+  } catch {
+    return ideasWithResults.map((item) => ({
+      title: item.title,
+      description: item.description ?? "",
+      valid: true,
+      reason: undefined,
+    }));
+  }
 }
 
 export async function validateIdeas(
@@ -23,6 +106,29 @@ export async function validateIdeas(
   const OpenAI = (await import("openai")).default;
   const openai = new OpenAI({ apiKey });
 
+  const hasWebSearch =
+    Boolean(process.env.TAVILY_API_KEY?.trim()) ||
+    Boolean(process.env.SERPER_API_KEY?.trim());
+
+  if (hasWebSearch) {
+    const ideasWithResults = await Promise.all(
+      ideas.map(async (idea) => {
+        const query = [idea.title, idea.description ?? ""].filter(Boolean).join(" ").trim();
+        const results =
+          query.length > 0
+            ? await webSearch(query, { num: SEARCH_RESULTS_PER_IDEA })
+            : [];
+        return {
+          title: idea.title,
+          description: idea.description ?? "",
+          results,
+        };
+      })
+    );
+    return judgeIdeasWithSearchResults(openai, ideasWithResults);
+  }
+
+  // fallback: אימות מבוסס LLM בלבד (בלי חיפוש)
   const list = ideas
     .map((i, idx) => `${idx + 1}. כותרת: ${i.title}\n   תיאור: ${i.description ?? "-"}`)
     .join("\n\n");

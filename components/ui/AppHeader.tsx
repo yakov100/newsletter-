@@ -43,7 +43,7 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
   );
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-white/10 bg-[#101622]/50 px-6 py-4 backdrop-blur-md lg:px-40">
+    <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-border bg-background/80 px-6 py-4 backdrop-blur-md lg:px-40">
       <div className="flex items-center gap-4">
         <Link
           href="/"
@@ -53,7 +53,7 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
         >
           <span className="material-symbols-outlined">auto_awesome</span>
         </Link>
-        <Link href="/" className="text-lg font-bold leading-tight tracking-tight text-white" tabIndex={0}>
+        <Link href="/" className="text-lg font-bold leading-tight tracking-tight text-foreground" tabIndex={0}>
           עוזר כתיבה AI
         </Link>
       </div>
@@ -77,8 +77,8 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
                   aria-label={`מסך ${label}`}
                   onClick={() => onGoToStage(key)}
                   onKeyDown={(e) => handleTabKeyDown(e, index)}
-                  className={`relative flex flex-col items-center text-sm font-medium leading-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101622] rounded ${
-                    isActive ? "text-[var(--primary)] font-bold" : "text-white/60 hover:text-white"
+                  className={`relative flex flex-col items-center text-sm font-medium leading-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded ${
+                    isActive ? "text-[var(--primary)] font-bold" : "text-muted hover:text-foreground"
                   }`}
                 >
                   <span>{label}</span>
@@ -96,7 +96,7 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
                 tabIndex={0}
                 aria-selected={isActive}
                 className={`relative flex flex-col items-center text-sm font-medium leading-normal transition-colors ${
-                  isActive ? "text-[var(--primary)] font-bold" : "text-white/60 hover:text-white"
+                  isActive ? "text-[var(--primary)] font-bold" : "text-muted hover:text-foreground"
                 }`}
               >
                 <span>{label}</span>
@@ -111,7 +111,7 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
       <div className="flex items-center gap-2">
         <Link
           href="/settings"
-          className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-white/5 text-white transition-all hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-card text-foreground transition-all hover:bg-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           aria-label="הגדרות"
           tabIndex={0}
         >
@@ -119,7 +119,7 @@ export function AppHeader({ currentStage, onGoToStage }: AppHeaderProps) {
         </Link>
         <Link
           href="/auth"
-          className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-white/5 text-white transition-all hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-card text-foreground transition-all hover:bg-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           aria-label="חשבון"
           tabIndex={0}
         >

@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #135bec;
-  --background: #101622;
-  --background-light: #f6f6f8;
-  --background-subtle: #1a2332;
-  --foreground: #f1f5f9;
-  --foreground-muted: #94a3b8;
-  --muted: #94a3b8;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  --accent: #135bec;
-  --accent-hover: #2563eb;
-  --accent-light: rgba(19, 91, 236, 0.2);
-  --accent-dark: #135bec;
-  --card: #1e293b;
-  --card-hover: #334155;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --primary: #059669;
+  --background: #f0fdf4;
+  --background-light: #f7fef9;
+  --background-subtle: #dcfce7;
+  --foreground: #14532d;
+  --foreground-muted: #6b7280;
+  --muted: #6b7280;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --accent: #059669;
+  --accent-hover: #047857;
+  --accent-light: rgba(5, 150, 105, 0.2);
+  --accent-dark: #047857;
+  --card: #ffffff;
+  --card-hover: #f0fdf4;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --radius: 0.25rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
@@ -27,7 +27,12 @@
   --color-primary: var(--primary);
   --color-background: var(--background);
   --color-background-light: var(--background-light);
+  --color-background-subtle: var(--background-subtle);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
   --font-sans: "Space Grotesk", "Noto Sans Hebrew", system-ui, sans-serif;
   --font-display: "Space Grotesk", "Noto Sans Hebrew", sans-serif;
 }
@@ -44,12 +49,13 @@ body {
   text-align: right;
 }
 
-/* Gradient mesh – default app background */
+/* Gradient mesh – default app background (light green pastel) */
 .gradient-mesh {
-  background-color: #101622;
+  background-color: #f0fdf4;
   background-image:
-    radial-gradient(at 0% 0%, rgba(19, 91, 236, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(19, 91, 236, 0.1) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(187, 247, 208, 0.5) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(167, 243, 208, 0.4) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(209, 250, 229, 0.3) 0px, transparent 50%);
 }
 
 /* Focus ring for accessibility */
@@ -73,7 +79,7 @@ a,
 
 /* Gradient text for branding */
 .gradient-text {
-  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #10b981 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -86,11 +92,12 @@ a,
 
 /* פאנל בחירת מודל – כפתור צור טיוטה */
 .create-draft-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 50%, #3b82f6 100%);
-  box-shadow: 0 4px 20px rgba(19, 91, 236, 0.35);
+  background: linear-gradient(135deg, var(--primary) 0%, #10b981 50%, #34d399 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(5, 150, 105, 0.35);
 }
 .create-draft-btn:not(:disabled):hover {
-  box-shadow: 0 6px 28px rgba(19, 91, 236, 0.45);
+  box-shadow: 0 6px 28px rgba(5, 150, 105, 0.45);
   transform: translateY(-1px);
 }
 .create-draft-btn:not(:disabled):active {
@@ -111,23 +118,28 @@ a,
   margin-top: 0;
 }
 
-/* Rich editor – גופנים וסימונים */
+/* Rich editor – גופנים וסימונים (pastel for light background) */
 .ProseMirror mark {
   padding: 0.1em 0.2em;
   border-radius: 0.2em;
 }
 .ProseMirror mark[data-color="yellow"] {
-  background: #854d0e;
+  background: #fef3c7;
+  color: #92400e;
 }
 .ProseMirror mark[data-color="green"] {
-  background: #14532d;
+  background: #d1fae5;
+  color: #065f46;
 }
 .ProseMirror mark[data-color="blue"] {
-  background: #1e3a8a;
+  background: #dbeafe;
+  color: #1e40af;
 }
 .ProseMirror mark[data-color="pink"] {
-  background: #831843;
+  background: #fce7f3;
+  color: #9d174d;
 }
 .ProseMirror mark[data-color="orange"] {
-  background: #9a3412;
+  background: #ffedd5;
+  color: #9a3412;
 }
