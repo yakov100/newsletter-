@@ -114,11 +114,10 @@ export async function validateIdeas(
     const ideasWithResults = await Promise.all(
       ideas.map(async (idea) => {
         const query = [idea.title, idea.description ?? ""].filter(Boolean).join(" ").trim();
-        const results: WebSearchResult[] =
+        const results =
           query.length > 0
             ? await webSearch(query, { num: SEARCH_RESULTS_PER_IDEA })
             : [];
-
         return {
           title: idea.title,
           description: idea.description ?? "",
