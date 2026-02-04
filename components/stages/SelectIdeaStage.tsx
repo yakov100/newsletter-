@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useSession } from "@/lib/state/session-context";
 import type { Idea } from "@/types/idea";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 function randomId(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -129,8 +128,9 @@ export function SelectIdeaStage() {
     }
   };
 
-  const handleContinue = () => {
-    if (selectedIdea) goToStage("writing");
+  const handleSelectIdea = (idea: Idea) => {
+    selectIdea(idea);
+    goToStage("writing");
   };
 
   const handleAddCustomIdea = (e: React.FormEvent) => {
@@ -144,6 +144,7 @@ export function SelectIdeaStage() {
     };
     setIdeas([...ideas, newIdea]);
     selectIdea(newIdea);
+    goToStage("writing");
     setCustomTitle("");
     setCustomDescription("");
     setShowCustomForm(false);
@@ -200,7 +201,7 @@ export function SelectIdeaStage() {
             key={idea.id}
             idea={idea}
             selected={selectedIdea?.id === idea.id}
-            onSelect={() => selectIdea(idea)}
+            onSelect={() => handleSelectIdea(idea)}
             validation={validations?.[idx]}
           />
         ))}
@@ -294,16 +295,6 @@ export function SelectIdeaStage() {
         </form>
       )}
 
-      {/* Continue to writing */}
-      <div className="mt-8 flex justify-center">
-        <PrimaryButton
-          onClick={handleContinue}
-          disabled={!selectedIdea}
-          className="min-w-[160px]"
-        >
-          ממש לכתיבה
-        </PrimaryButton>
-      </div>
     </div>
   );
 }

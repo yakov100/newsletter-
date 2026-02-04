@@ -25,6 +25,7 @@ export async function generateOutline(
 החזר רק שלד: כותרות או משפט אחד לכל חלק (פתיחה, גוף, סיום). בלי פסקאות מלאות, בלי טקסט הכתבה עצמה. המטרה שהשלד יהיה רשימת נקודות/כותרות להנחיה בלבד – הכתבה המלאה תיכתב אחר כך. כל נקודה בשלד חייבת להתייחס רק לאירועים/עובדות מתועדות – לא להמציא.`,
       },
     ],
+    max_tokens: 1024,
   });
   const outline = res.choices[0]?.message?.content?.trim() ?? getMockOutline(title, description);
   return outline;

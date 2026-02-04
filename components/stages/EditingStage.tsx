@@ -41,10 +41,33 @@ function getTitleAndDescription(html: string): { title: string; description: str
   };
 }
 
+function draftTextToHtml(text: string): string {
+  if (!text.trim()) return "";
+  const escape = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  return text
+    .split(/\n\n+/)
+    .map((p) => `<p>${escape(p.trim())}</p>`)
+    .filter((p) => p !== "<p></p>")
+    .join("");
+}
+
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  mini: "Gemini",
+  cloud: "Cloud (Anthropic / Claude)",
+};
+
 export function EditingStage() {
-  const { session, setEditedContent, goToStage } = useSession();
-  const { draftContent, editedContent } = session;
+  const { session, setDraftContent, setEditedContent, setAllDrafts, goToStage } = useSession();
+  const { draftContent, editedContent, draftLoading, allDrafts } = session;
   const content = editedContent || draftContent;
+  const hasDraftsToChoose = allDrafts && Object.keys(allDrafts.drafts).length > 0 && !content;
+  const showDraftLoading = draftLoading && !content && !hasDraftsToChoose;
   const editorRef = useRef<RichEditorHandle>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -270,16 +293,73 @@ export function EditingStage() {
         {/* אזור העורך */}
         <div className="flex flex-1 flex-col overflow-y-auto p-6">
           <div className="mx-auto w-full max-w-4xl">
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-[#101622] shadow-sm">
-              <RichEditor
-                ref={editorRef}
-                value={content}
-                onChange={setEditedContent}
-                placeholder="ערוך כאן…"
-                onImproveText={handleSuggestions}
-              />
-            </div>
-            <div className="mt-4 flex items-center justify-between">
+            {showDraftLoading && (
+              <div className="flex min-h-[320px] flex-col items-center justify-center gap-6 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-12 shadow-inner">
+                <span className="inline-block h-12 w-12 animate-spin rounded-full border-3 border-[var(--primary)] border-t-transparent" />
+                <p className="text-xl font-semibold text-white">הטיוטה נוצרת</p>
+                <p className="text-sm text-white/50">זה יכול לקחת עד דקה – אנא המתין</p>
+              </div>
+            )}
+            {hasDraftsToChoose && allDrafts && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-white">בחר איזו טיוטה עדיפה</h2>
+                <div className="grid gap-4">
+                  {Object.entries(allDrafts.drafts).map(([provider, draft]) => {
+                    const error = allDrafts.errors[provider];
+                    const label = PROVIDER_LABELS[provider] ?? provider;
+                    if (error && !draft) {
+                      return (
+                        <div
+                          key={provider}
+                          className="rounded-xl border border-red-800 bg-red-950/30 p-4"
+                        >
+                          <p className="font-medium text-white">{label}</p>
+                          <p className="mt-1 text-sm text-red-400">{error}</p>
+                        </div>
+                      );
+                    }
+                    if (!draft) return null;
+                    return (
+                      <div
+                        key={provider}
+                        className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-white">{label}</p>
+                          <PrimaryButton
+                            onClick={() => {
+                              setDraftContent(draftTextToHtml(draft));
+                              setAllDrafts(null);
+                            }}
+                            className="px-3 py-1.5 text-sm"
+                          >
+                            בחר טיוטה זו
+                          </PrimaryButton>
+                        </div>
+                        <div
+                          className="line-clamp-6 whitespace-pre-wrap border-t border-white/10 pt-3 text-sm leading-relaxed text-white/60"
+                          dir="rtl"
+                        >
+                          {draft}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {!showDraftLoading && !hasDraftsToChoose && (
+              <>
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-[#101622] shadow-sm">
+                  <RichEditor
+                    ref={editorRef}
+                    value={content}
+                    onChange={setEditedContent}
+                    placeholder="ערוך כאן…"
+                    onImproveText={handleSuggestions}
+                  />
+                </div>
+                <div className="mt-4 flex items-center justify-between">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <button
                   type="button"
@@ -302,7 +382,9 @@ export function EditingStage() {
               <PrimaryButton onClick={() => goToStage("completion")}>
                 הכתבה מוכנה
               </PrimaryButton>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

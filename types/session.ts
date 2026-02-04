@@ -7,6 +7,11 @@ export type Stage =
   | "editing"
   | "completion";
 
+export interface AllDraftsState {
+  drafts: Record<string, string>;
+  errors: Record<string, string>;
+}
+
 export interface WritingSession {
   stage: Stage;
   ideas: Idea[];
@@ -14,6 +19,8 @@ export interface WritingSession {
   outline: string;
   draftContent: string;
   editedContent: string;
+  draftLoading: boolean;
+  allDrafts: AllDraftsState | null;
   createdAt: number;
   updatedAt: number;
 }

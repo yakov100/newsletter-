@@ -45,6 +45,7 @@ export async function generateDraft(
       { role: "system", content: config.systemPrompt },
       { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
     ],
+    max_tokens: 4096,
   });
   const draft =
     res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
@@ -68,6 +69,7 @@ async function generateDraftOpenAI(
       { role: "system", content: config.systemPrompt },
       { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
     ],
+    max_tokens: 4096,
   });
   return res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
 }
@@ -103,7 +105,7 @@ async function generateDraftCloud(
   if (!apiKey) return getMockDraft(title, description, outline);
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022";
   const message = await client.messages.create({
     model,
     max_tokens: 4096,

@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Idea } from "@/types/idea";
-import type { Stage, WritingSession } from "@/types/session";
+import type { Stage, WritingSession, AllDraftsState } from "@/types/session";
 
 const initialSession: WritingSession = {
   stage: "ideas",
@@ -11,6 +11,8 @@ const initialSession: WritingSession = {
   outline: "",
   draftContent: "",
   editedContent: "",
+  draftLoading: false,
+  allDrafts: null,
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };
@@ -22,6 +24,8 @@ type SessionContextValue = {
   setOutline: (outline: string) => void;
   setDraftContent: (content: string) => void;
   setEditedContent: (content: string) => void;
+  setDraftLoading: (loading: boolean) => void;
+  setAllDrafts: (state: AllDraftsState | null) => void;
   goToStage: (stage: Stage) => void;
   resetSession: () => void;
 };
@@ -72,6 +76,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setDraftLoading = useCallback((loading: boolean) => {
+    setSession((prev) => ({
+      ...prev,
+      draftLoading: loading,
+      updatedAt: Date.now(),
+    }));
+  }, []);
+
+  const setAllDrafts = useCallback((state: AllDraftsState | null) => {
+    setSession((prev) => ({
+      ...prev,
+      allDrafts: state,
+      updatedAt: Date.now(),
+    }));
+  }, []);
+
   const goToStage = useCallback((stage: Stage) => {
     setSession((prev) => {
       const next = { ...prev, stage, updatedAt: Date.now() };
@@ -98,6 +118,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setOutline,
       setDraftContent,
       setEditedContent,
+      setDraftLoading,
+      setAllDrafts,
       goToStage,
       resetSession,
     }),
@@ -108,6 +130,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setOutline,
       setDraftContent,
       setEditedContent,
+      setDraftLoading,
+      setAllDrafts,
       goToStage,
       resetSession,
     ]

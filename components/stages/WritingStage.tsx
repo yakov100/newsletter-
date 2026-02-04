@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/state/session-context";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { RichEditor } from "@/components/editor/RichEditor";
 import type { DraftProvider } from "@/lib/ai/draft";
 
 function draftTextToHtml(text: string): string {
@@ -23,6 +21,24 @@ function draftTextToHtml(text: string): string {
 
 type ModelChoice = "openai" | "mini" | "cloud" | "all";
 
+/** סמליל Gemini – כוכב ניצוץ בסגנון הלוגו הרשמי */
+function GeminiLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 22l-2.5-6.5L3 11l6.5-2.5L12 2z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 const MODEL_OPTIONS: {
   value: ModelChoice;
   label: string;
@@ -30,6 +46,7 @@ const MODEL_OPTIONS: {
   icon: string;
   iconBg: string;
   iconColor: string;
+  useLogo?: boolean;
 }[] = [
   {
     value: "openai",
@@ -41,11 +58,12 @@ const MODEL_OPTIONS: {
   },
   {
     value: "mini",
-    label: "Gemini (Mini)",
+    label: "Gemini",
     sublabel: "יעיל ומהיר מאוד",
-    icon: "google",
+    icon: "",
     iconBg: "bg-blue-500/10",
     iconColor: "text-blue-500",
+    useLogo: true,
   },
   {
     value: "cloud",
@@ -65,22 +83,12 @@ const MODEL_OPTIONS: {
   },
 ];
 
-const PROVIDER_LABELS: Record<DraftProvider, string> = {
-  openai: "OpenAI",
-  mini: "Mini (Gemini)",
-  cloud: "Cloud (Anthropic / Claude)",
-};
-
 export function WritingStage() {
-  const { session, setDraftContent, setOutline, goToStage } = useSession();
-  const { selectedIdea, outline, draftContent } = session;
+  const { session, setDraftContent, setOutline, setDraftLoading, setAllDrafts, goToStage } = useSession();
+  const { selectedIdea, outline } = session;
   const [outlineLoading, setOutlineLoading] = useState(false);
-  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftLoading, setDraftLoadingLocal] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelChoice>("openai");
-  const [allDrafts, setAllDrafts] = useState<{
-    drafts: Partial<Record<DraftProvider, string>>;
-    errors: Partial<Record<DraftProvider, string>>;
-  } | null>(null);
 
   const useAllThree = selectedModel === "all" || selectedModel === "mini" || selectedModel === "cloud";
 
@@ -109,7 +117,9 @@ export function WritingStage() {
   async function generateDraft() {
     if (!selectedIdea || !outline?.trim()) return;
     setDraftLoading(true);
+    setDraftLoadingLocal(true);
     setAllDrafts(null);
+    goToStage("editing");
     try {
       const generateAll = useAllThree;
       const res = await fetch("/api/draft", {
@@ -130,7 +140,15 @@ export function WritingStage() {
       if (generateAll && (data.drafts || data.errors)) {
         const drafts = data.drafts ?? {};
         const errors = data.errors ?? {};
-        setAllDrafts({ drafts, errors });
+        const draftsRecord: Record<string, string> = {};
+        const errorsRecord: Record<string, string> = {};
+        for (const k of Object.keys(drafts)) {
+          if (drafts[k as DraftProvider]) draftsRecord[k] = drafts[k as DraftProvider];
+        }
+        for (const k of Object.keys(errors)) {
+          if (errors[k as DraftProvider]) errorsRecord[k] = errors[k as DraftProvider];
+        }
+        setAllDrafts({ drafts: draftsRecord, errors: errorsRecord });
         if (selectedModel === "mini" && drafts.mini) {
           setDraftContent(draftTextToHtml(drafts.mini));
           setAllDrafts(null);
@@ -143,31 +161,25 @@ export function WritingStage() {
       }
     } finally {
       setDraftLoading(false);
+      setDraftLoadingLocal(false);
     }
   }
-
-  function selectDraft(provider: DraftProvider, text: string) {
-    setDraftContent(draftTextToHtml(text));
-    setAllDrafts(null);
-  }
-
-  const providers: DraftProvider[] = ["openai", "mini", "cloud"];
-  const hasDraftsToChoose = allDrafts && selectedModel === "all" && Object.keys(allDrafts.drafts).length > 0;
 
   if (!selectedIdea) return null;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
-      {/* שלד הכתבה */}
-      <div className="space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-white">שלד הכתבה</h1>
-          <p className="text-white/60">
-            עבור על הסעיפים שנוצרו, ערוך אותם במידת הצורך ואשר את המבנה ליצירת הטיוטה.
-          </p>
-        </div>
+    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-12">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-white">שלד הכתבה</h1>
+        <p className="text-white/60">
+          עבור על הסעיפים שנוצרו, ערוך אותם במידת הצורך ואשר את המבנה ליצירת הטיוטה.
+        </p>
+      </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#101622] shadow-sm">
+      {/* שלד + בחירת מודל בשורה אחת */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+        {/* שלד הכתבה – מוצג במלואו בלי גלילה */}
+        <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#101622] shadow-sm">
           <div className="space-y-4 p-6">
             {/* כותרת המאמר */}
             <div className="group outline-item flex items-center gap-4 rounded-lg bg-white/5 p-3 transition-all">
@@ -184,7 +196,7 @@ export function WritingStage() {
               </div>
             </div>
 
-            {/* שלד (תוכן עריכה) */}
+            {/* שלד (תוכן עריכה) – גובה אוטומטי, מוצג במלואו */}
             {outlineLoading ? (
               <p className="flex items-center gap-2 text-sm text-white/60">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
@@ -192,14 +204,15 @@ export function WritingStage() {
               </p>
             ) : outline ? (
               <div className="outline-item flex items-start gap-4 rounded-lg border border-white/10 p-4 transition-all hover:border-[var(--primary)]/30">
-                <span className="material-symbols-outlined mt-1 cursor-move text-white/40">
+                <span className="material-symbols-outlined mt-1 cursor-move text-white/40 shrink-0">
                   drag_handle
                 </span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <textarea
                     value={outline}
                     onChange={(e) => setOutline(e.target.value)}
-                    className="min-h-[140px] w-full resize-y border-none bg-transparent p-0 text-sm leading-relaxed text-white placeholder:text-white/40 focus:ring-0"
+                    rows={Math.max(8, outline.split(/\n/).length + 2)}
+                    className="min-h-0 w-full resize-none overflow-visible border-none bg-transparent p-0 text-sm leading-relaxed text-white placeholder:text-white/40 focus:ring-0"
                     placeholder="שלד הכתבה…"
                     dir="rtl"
                   />
@@ -208,178 +221,83 @@ export function WritingStage() {
             ) : null}
           </div>
         </div>
-      </div>
 
-      {/* אשר את השלד ובחר מודל */}
-      <div className="space-y-6 rounded-xl border border-white/10 bg-[#101622] p-8 shadow-sm">
-        <div className="text-center space-y-1">
-          <h3 className="text-xl font-bold text-white">
-            אשר את השלד ובחר מודל לכתיבת הטיוטה
-          </h3>
-          <p className="text-sm text-white/60">
-            הטיוטה תיווצר באופן אוטומטי על בסיס הסעיפים שאושרו למעלה
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {MODEL_OPTIONS.map((opt) => (
-            <label
-              key={opt.value}
-              className="model-card relative cursor-pointer group"
-            >
-              <input
-                type="radio"
-                name="ai_model"
-                checked={selectedModel === opt.value}
-                onChange={() => setSelectedModel(opt.value)}
-                className="hidden"
-              />
-              <div
-                className={
-                  "flex flex-col items-center gap-3 rounded-xl border p-4 transition-all " +
-                  (selectedModel === opt.value
-                    ? "border-[var(--primary)] bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]"
-                    : "border-white/10 group-hover:bg-white/5")
-                }
-              >
-                <div
-                  className={`size-10 rounded-full flex items-center justify-center ${opt.iconBg} ${opt.iconColor}`}
-                >
-                  <span className="material-symbols-outlined">{opt.icon}</span>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold text-white">{opt.label}</p>
-                  <p className="text-[10px] text-white/50">{opt.sublabel}</p>
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-
-        <div className="flex flex-col items-center gap-4 pt-4">
-          <button
-            type="button"
-            onClick={generateDraft}
-            disabled={draftLoading || !outline?.trim()}
-            className="flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-[var(--primary)] py-4 text-lg font-bold text-white shadow-xl shadow-[var(--primary)]/30 transition-all hover:opacity-90 disabled:opacity-50"
-          >
-            {draftLoading ? (
-              <>
-                <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                כותב טיוטה…
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined">magic_button</span>
-                צור טיוטה ועבור לעורך
-              </>
-            )}
-          </button>
-          <p className="text-xs text-white/50">
-            בלחיצה, המערכת תתחיל בתהליך הכתיבה. זה עשוי לקחת כ-30 שניות.
-          </p>
-        </div>
-      </div>
-
-      {/* בחירת טיוטה (רק כשבחר "הכל" ויש כמה טיוטות) */}
-      {hasDraftsToChoose && allDrafts && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">בחר איזו טיוטה עדיפה</h2>
-          <div className="grid gap-4">
-            {providers.map((provider) => {
-              const draft = allDrafts.drafts[provider];
-              const error = allDrafts.errors[provider];
-              const label = PROVIDER_LABELS[provider];
-              if (error && !draft) {
-                return (
-                  <div
-                    key={provider}
-                    className="rounded-xl border border-red-800 bg-red-950/30 p-4"
-                  >
-                    <p className="font-medium text-white">{label}</p>
-                    <p className="mt-1 text-sm text-red-400">{error}</p>
-                  </div>
-                );
-              }
-              if (!draft) return null;
-              return (
-                <div
-                  key={provider}
-                  className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-white">{label}</p>
-                    <PrimaryButton
-                      onClick={() => selectDraft(provider, draft)}
-                      className="px-3 py-1.5 text-sm"
-                    >
-                      בחר טיוטה זו
-                    </PrimaryButton>
-                  </div>
-                  <div
-                    className="line-clamp-6 whitespace-pre-wrap border-t border-white/10 pt-3 text-sm leading-relaxed text-white/60"
-                    dir="rtl"
-                  >
-                    {draft}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* אזור העורך – נעול עד שיש טיוטה */}
-      <div className="relative">
-        {!draftContent && !draftLoading ? (
-          <div className="relative select-none opacity-25 grayscale pointer-events-none">
-            <div className="absolute inset-0 z-10 flex items-center justify-center">
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-6 py-3 shadow-xl backdrop-blur-sm">
-                <span className="material-symbols-outlined animate-pulse text-white">lock</span>
-                <span className="text-sm font-bold text-white">
-                  העורך ייפתח לאחר יצירת הטיוטה
-                </span>
-              </div>
+        {/* כפתורי בחירת מודל – מאונכים בצד השלד */}
+        <div className="model-panel flex flex-col gap-5 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-transparent p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-sm lg:w-56 lg:shrink-0">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-1 w-1 rounded-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]" aria-hidden />
+              <h3 className="text-lg font-bold tracking-tight text-white">בחר מודל</h3>
             </div>
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-[#101622]">
-              <div className="flex h-10 items-center gap-4 border-b border-white/10 bg-white/5 px-4">
-                <span className="h-4 w-4 rounded bg-white/20" />
-                <span className="h-4 w-4 rounded bg-white/20" />
-                <span className="h-4 w-4 rounded bg-white/20" />
-              </div>
-              <div className="space-y-4 p-12">
-                <div className="h-8 w-3/4 rounded bg-white/10" />
-                <div className="h-4 w-full rounded bg-white/10" />
-                <div className="h-4 w-full rounded bg-white/10" />
-                <div className="h-4 w-2/3 rounded bg-white/10" />
-              </div>
-            </div>
-          </div>
-        ) : draftLoading && !hasDraftsToChoose ? (
-          <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-white/10 bg-white/5 p-8">
-            <p className="flex items-center gap-2 text-sm text-white/60">
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
-              כותב טיוטה…
+            <p className="text-xs leading-relaxed text-white/50">
+              הטיוטה תיווצר על בסיס הסעיפים שאושרו
             </p>
           </div>
-        ) : (
-          <>
-            <label className="mb-2 block text-sm font-semibold text-white/70">
-              הכתבה שלך
-            </label>
-            <RichEditor
-              value={draftContent}
-              onChange={setDraftContent}
-              placeholder="ערוך כאן את הטיוטה…"
-            />
-            <PrimaryButton
-              onClick={() => goToStage("editing")}
-              className="mt-4 self-end"
+          <div className="flex flex-col gap-2.5">
+            {MODEL_OPTIONS.map((opt) => (
+              <label
+                key={opt.value}
+                className="model-card relative cursor-pointer group"
+              >
+                <input
+                  type="radio"
+                  name="ai_model"
+                  checked={selectedModel === opt.value}
+                  onChange={() => setSelectedModel(opt.value)}
+                  className="hidden"
+                />
+                <div
+                  className={
+                    "flex items-center gap-3.5 rounded-xl border p-3.5 transition-all duration-200 " +
+                    (selectedModel === opt.value
+                      ? "border-[var(--primary)]/60 bg-[var(--primary)]/10 shadow-[0_0_20px_rgba(19,91,236,0.2)] ring-1 ring-[var(--primary)]/30"
+                      : "border-white/[0.06] bg-white/[0.02] group-hover:border-white/15 group-hover:bg-white/[0.05] group-active:scale-[0.99]")
+                  }
+                >
+                  <div
+                    className={`flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl ${opt.iconBg} ${opt.iconColor} shadow-inner transition-transform group-hover:scale-105 ${selectedModel === opt.value ? "ring-1 ring-white/10" : ""}`}
+                  >
+                    {opt.useLogo && opt.value === "mini" ? (
+                      <GeminiLogo className="size-5 text-blue-500" />
+                    ) : (
+                      <span className="material-symbols-outlined text-lg">{opt.icon}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 overflow-hidden text-right">
+                    <p className="truncate text-sm font-semibold text-white">{opt.label}</p>
+                    <p className="truncate text-[11px] text-white/45">{opt.sublabel}</p>
+                  </div>
+                  {selectedModel === opt.value && (
+                    <span className="material-symbols-outlined shrink-0 text-base text-[var(--primary)]">check_circle</span>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="mt-1 space-y-2">
+            <button
+              type="button"
+              onClick={generateDraft}
+              disabled={draftLoading || !outline?.trim()}
+              className="create-draft-btn flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:shadow-[var(--primary)]/25 disabled:opacity-50 disabled:pointer-events-none"
             >
-              המשך לעריכה
-            </PrimaryButton>
-          </>
-        )}
+              {draftLoading ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  כותב…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-xl">auto_awesome</span>
+                  צור טיוטה
+                </>
+              )}
+            </button>
+            <p className="text-center text-[11px] text-white/40">
+              משך משוער כ־30 שניות
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

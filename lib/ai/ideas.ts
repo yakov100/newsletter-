@@ -192,7 +192,7 @@ async function generateIdeasWithClaude(
 ): Promise<Idea[]> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022";
   const message = await client.messages.create({
     model,
     max_tokens: 1024,
@@ -226,6 +226,7 @@ async function generateIdeasWithOpenAI(
       { role: "user", content: USER_PROMPT },
     ],
     response_format: { type: "json_object" },
+    max_tokens: 1024,
   });
   const content = res.choices[0]?.message?.content;
   if (!content) throw new Error("לא התקבלה תשובה מ-AI");

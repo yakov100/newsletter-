@@ -84,6 +84,33 @@ a,
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
+/* פאנל בחירת מודל – כפתור צור טיוטה */
+.create-draft-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 50%, #3b82f6 100%);
+  box-shadow: 0 4px 20px rgba(19, 91, 236, 0.35);
+}
+.create-draft-btn:not(:disabled):hover {
+  box-shadow: 0 6px 28px rgba(19, 91, 236, 0.45);
+  transform: translateY(-1px);
+}
+.create-draft-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Rich editor – כותרות: מודגשות ורווח שורה */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3 {
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.75em;
+}
+.ProseMirror h1:first-child,
+.ProseMirror h2:first-child,
+.ProseMirror h3:first-child {
+  margin-top: 0;
+}
+
 /* Rich editor – גופנים וסימונים */
 .ProseMirror mark {
   padding: 0.1em 0.2em;
