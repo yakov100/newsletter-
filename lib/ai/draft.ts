@@ -1,5 +1,9 @@
 import type { WritingAgentConfig } from "@/lib/agent-config";
 
+/** כללים קבועים בתחילת הנחיות הכתיבה – איסור המצאה. */
+const FIXED_WRITING_RULES =
+  "כלל ברזל – רק עובדות מתועדות: אסור להמציא פרטים, דיאלוגים, סצנות או תיאורים. בשלד: אסור להמציא שמות, תאריכים, מקומות או מספרים; אם אינך בטוח – השאר [לבדיקה] או placeholder מתאים (למשל [שם הדמות], [תאריך], [מקום]).\n\nכתוב רק מה שידוע ומתועד שקרה. אם פרט לא ודאי – השמט או ציין במפורש שמדובר בהערכה/מקור לא ודאי. אין \"כנראה\", \"סביר ש־\" או תיאורים מעוצבים מכח הדמיון.\n\n";
+
 const DRAFT_USER_PROMPT = (
   title: string,
   description: string,
@@ -47,10 +51,11 @@ export async function generateDraft(
   }
   const OpenAI = (await import("openai")).default;
   const openai = new OpenAI({ apiKey });
+  const systemPrompt = FIXED_WRITING_RULES + config.systemPrompt;
   const res = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     messages: [
-      { role: "system", content: config.systemPrompt },
+      { role: "system", content: systemPrompt },
       { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
     ],
     max_tokens: 4096,
@@ -71,10 +76,11 @@ async function generateDraftOpenAI(
   if (!apiKey) return getMockDraft(title, description, outline);
   const OpenAI = (await import("openai")).default;
   const openai = new OpenAI({ apiKey });
+  const systemPrompt = FIXED_WRITING_RULES + config.systemPrompt;
   const res = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     messages: [
-      { role: "system", content: config.systemPrompt },
+      { role: "system", content: systemPrompt },
       { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
     ],
     max_tokens: 4096,
@@ -93,9 +99,10 @@ async function generateDraftMini(
   if (!apiKey) return getMockDraft(title, description, outline);
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(apiKey);
+  const systemPrompt = FIXED_WRITING_RULES + config.systemPrompt;
   const model = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
-    systemInstruction: config.systemPrompt,
+    systemInstruction: systemPrompt,
   });
   const result = await model.generateContent(DRAFT_USER_PROMPT(title, description, outline));
   const text = result.response.text();
@@ -114,10 +121,11 @@ async function generateDraftCloud(
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
   const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022";
+  const systemPrompt = FIXED_WRITING_RULES + config.systemPrompt;
   const message = await client.messages.create({
     model,
     max_tokens: 4096,
-    system: config.systemPrompt,
+    system: systemPrompt,
     messages: [
       {
         role: "user",

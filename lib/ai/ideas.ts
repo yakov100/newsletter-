@@ -7,9 +7,9 @@ function randomId(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** Fixed rules prepended to ideas system prompt – no fabrication, context-only. */
+/** Fixed rules prepended to ideas system prompt – no fabrication, context-only, specific cases only. */
 const FIXED_SYSTEM_RULES =
-  "אתה עוזר עריכה עיתונאי. אסור לך להמציא אירועים, אנשים, מקומות או תאריכים. מותר להשתמש אך ורק במידע שנמסר לך במפורש. במקרה של ספק – ציין חוסר ודאות. אי עמידה בהנחיות נחשבת שגיאה.\n\n";
+  "אתה עוזר עריכה עיתונאי. אסור לך להמציא אירועים, אנשים, מקומות או תאריכים. מותר להשתמש אך ורק במידע שנמסר לך במפורש. במקרה של ספק – ציין חוסר ודאות. אי עמידה בהנחיות נחשבת שגיאה.\n\nחובה: הצע רק מקרים ספציפיים – אירוע אחד, דמות אחת או סיפור אחד קונקרטי שמופיע במפורש במקורות. אסור להציע נושאים כלליים, קטגוריות או \"זוויות\" רחבות (כמו \"תעלומות היסטוריות\" או \"רגעים באולימפיאדה\"). כל רעיון חייב להתייחס למקרה אחד מסוים בשם, בתאריך או באירוע ברור מהמקורות.\n\n";
 
 /** Search queries for RAG – real documented stories/themes. */
 const RAG_SEARCH_QUERIES = [
@@ -111,9 +111,9 @@ export async function fetchRagContext(): Promise<RagContext> {
 
 function buildUserPromptWithRag(contextBlock: string): string {
   const base =
-    "בהמשך למידע המצורף בלבד (מקורות למטה), הצע בדיוק 3 רעיונות לכתבות מגזין. לכל רעיון ציין מאילו מקורות (מזהי המקור, למשל s1, s2) הוא נגזר. אסור להוסיף אירועים, שמות או פרטים שלא מופיעים במקורות. אם אין די נתונים – כתוב במפורש.";
+    "בהמשך למידע המצורף בלבד (מקורות למטה), הצע בדיוק 3 רעיונות לכתבות מגזין. כל רעיון חייב להיות מקרה ספציפי אחד: אירוע מסוים, דמות מסוימת או סיפור קונקרטי שמופיע במפורש במקורות – לא נושא כללי ולא קטגוריה. הכותרת תכלול את שם האירוע/הדמות/המקרה (ולא כותרת גנרית כמו \"תעלומות היסטוריות\"). התיאור יתייחס למקרה הספציפי הזה בלבד. לכל רעיון ציין מאילו מקורות (מזהי המקור, למשל s1, w2) הוא נגזר. אסור להוסיף אירועים, שמות או פרטים שלא מופיעים במקורות. אם אין די נתונים – כתוב במפורש.";
   const format =
-    'ענה ב-JSON בלבד במבנה: { "ideas": [ { "title": "כותרת", "description": "תיאור", "based_on_sources": ["s1","s2"], "confidence_level": "high" או "medium" או "low" }, ... ] } – מערך ideas עם בדיוק 3 אובייקטים. based_on_sources: מזהי המקורות מהרשימה. confidence_level: רמת הביטחון שהרעיון מבוסס על המקורות. אל תעטוף ב-markdown או בטקסט נוסף.';
+    'ענה ב-JSON בלבד במבנה: { "ideas": [ { "title": "כותרת – שם המקרה הספציפי", "description": "תיאור המקרה בלבד", "based_on_sources": ["s1","s2"], "confidence_level": "high" או "medium" או "low" }, ... ] } – מערך ideas עם בדיוק 3 אובייקטים. title: שם האירוע/הדמות/הסיפור הקונקרטי (לא נושא כללי). based_on_sources: מזהי המקורות מהרשימה. confidence_level: רמת הביטחון. אל תעטוף ב-markdown או בטקסט נוסף.';
   if (!contextBlock) return base + "\n\n" + format;
   return base + "\n\n" + format + "\n\n" + contextBlock;
 }
