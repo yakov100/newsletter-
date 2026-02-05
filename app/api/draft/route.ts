@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getWritingAgentConfig } from "@/lib/agent-config";
 import { generateDraft, generateAllDrafts } from "@/lib/ai/draft";
 
+/** זמן מרבי ליצירת טיוטה (שניות) – מודלים יכולים לקחת דקות */
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

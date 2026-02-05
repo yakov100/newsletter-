@@ -153,7 +153,8 @@ export function WritingStage() {
     setDraftLoadingLocal(true);
     setAllDrafts(null);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+    const timeoutMs = 5 * 60 * 1000; // 5 דקות – תואם ל־maxDuration בשרת
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const generateAll = useAllThree;
       const res = await fetch("/api/draft", {
