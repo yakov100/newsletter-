@@ -70,7 +70,8 @@ export async function createResponseWithWebSearch(
     : "";
   const urlCitations: ResponsesWebSearchResult["urlCitations"] = [];
 
-  for (const item of response.output ?? []) {
+  const output = "output" in response && Array.isArray(response.output) ? response.output : [];
+  for (const item of output) {
     if (item.type === "message" && "content" in item && Array.isArray(item.content)) {
       for (const part of item.content) {
         if (part.type === "output_text" && "annotations" in part && Array.isArray(part.annotations)) {
@@ -92,7 +93,7 @@ export async function createResponseWithWebSearch(
   let sources: string[] | undefined;
   if (options?.includeSources) {
     sources = [];
-    for (const item of response.output ?? []) {
+    for (const item of output) {
       if (
         item.type === "web_search_call" &&
         "action" in item &&
