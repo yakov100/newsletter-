@@ -11,6 +11,27 @@ const NO_FABRICATION =
   "הצע רק סיפורים אמיתיים ומתועדים (שמות אמיתיים, אירועים שקרו). אסור להמציא אירועים, שמות, שבטים או מקומות.";
 const USER_PROMPT = `${NO_FABRICATION}\n\nצור בדיוק 3 רעיונות לכתבה אחת. ${FORMAT_INSTRUCTION}`;
 
+/** Remove tool/function call blocks from model output (for parsing and display). */
+function stripToolCallSyntax(s: string): string {
+  return s
+    .replace(/web_search_function_calls>>[\s\S]*?(?=```|$)/gi, "")
+    .replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/invoke>/gi, "")
+    .replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/parameter>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Same as above but without collapsing whitespace, for use before JSON parse. */
+function stripToolCallSyntaxForParsing(s: string): string {
+  return s
+    .replace(/web_search_function_calls>>[\s\S]*?(?=```|$)/gi, "")
+    .replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/invoke>/gi, "")
+    .replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/parameter>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+}
+
 /** Try to get parseable JSON from model output (code blocks, raw JSON, or {...} substring). */
 function extractJsonString(content: string): string {
   let s = content.trim();
@@ -144,22 +165,13 @@ function extractIdeasFallback(content: string): Idea[] {
     if (ideas.length >= 3) break;
   }
   if (ideas.length > 0) return ideas;
-  // Single fallback: treat whole extracted block as one idea
-  const extracted = extractJsonString(content);
-  if (extracted.length > 20) {
-    return [
-      {
-        id: randomId(),
-        title: "רעיון מהתשובה",
-        description: extracted.replace(/\s+/g, " ").slice(0, 500),
-      },
-    ];
-  }
+  // Do NOT return a single "רעיון מהתשובה" – we want exactly 3 ideas. Let the caller throw.
   return [];
 }
 
 function parseIdeasFromResponse(content: string): Idea[] {
-  const jsonStr = normalizeJson(extractJsonString(content));
+  const contentWithoutToolCalls = stripToolCallSyntaxForParsing(content);
+  const jsonStr = normalizeJson(extractJsonString(contentWithoutToolCalls));
   try {
     const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
     const result = ideasFromParsed(parsed);
@@ -167,7 +179,7 @@ function parseIdeasFromResponse(content: string): Idea[] {
   } catch {
     // JSON parse failed – try fallback extraction
   }
-  const fallback = extractIdeasFallback(content);
+  const fallback = extractIdeasFallback(contentWithoutToolCalls);
   if (fallback.length > 0) return fallback;
   throw new Error("לא הצלחנו לפרש את תשובת Claude. נסה שוב או צור רעיון משלך.");
 }
