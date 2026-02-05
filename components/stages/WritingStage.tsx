@@ -113,26 +113,37 @@ export function WritingStage() {
 
   const fetchOutline = useCallback(() => {
     if (!selectedIdea) return;
+    const title = selectedIdea.title?.trim();
+    if (!title) {
+      setOutlineError("חסרה כותרת לרעיון");
+      return;
+    }
     setOutlineError(null);
     setOutlineLoading(true);
     fetch("/api/outline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: selectedIdea.title,
-        description: selectedIdea.description,
+        title,
+        description: selectedIdea.description ?? "",
       }),
     })
       .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
+        const text = await res.text();
+        let data: { error?: string; outline?: string };
+        try {
+          data = text.startsWith("{") ? JSON.parse(text) : {};
+        } catch {
+          data = {};
+        }
         if (!res.ok) {
-          setOutlineError(data.error || `שגיאה ${res.status}`);
+          setOutlineError((data as { error?: string }).error || (text.startsWith("<") ? "השרת החזיר דף שגיאה – נסה שוב" : `שגיאה ${res.status}`));
           return;
         }
         if (data.outline && typeof data.outline === "string") {
           setOutline(data.outline);
         } else {
-          setOutlineError("לא התקבל שלד מהשרת");
+          setOutlineError(data.error || "לא התקבל שלד מהשרת");
         }
       })
       .catch((err) => {

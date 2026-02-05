@@ -14,9 +14,29 @@ ${outline}
 
 החזר רק את טקסט הכתבה: פסקאות מפורטות ומופרדות בשורה ריקה. כל נקודה או הוספה שמופיעה בשלד חייבת לקבל פיתוח מלא בכתבה. אל תחזיר את השלד כפי שהוא – כתוב כתבה מלאה עם פרטים, דוגמאות ומשפטים שלמים.
 
+אל תוסיף הקדמה, משפטי מעבר או הסברים: לא "תבסס על המידע מהחיפוש", לא "הנה הכתבה המלאה", לא "להלן הכתבה" – התחל ישירות בגוף הכתבה (פסקה ראשונה או כותרת ##).
+
 כותרות בגוף הכתבה: הוסף 3–4 כותרות משנה קצרות וקליטות שמפצלות את הכתבה לחלקים ברורים (לא "פתיחה" או "סיום" – כותרות תוכן). כל כותרת בשורה נפרדת עם הסימן ## בהתחלה, ואחריה שורה ריקה. דוגמה: ## מה בדיוק קרה שם. הכותרות יוצגו בעיצוב בולט בעורך.
 
 חשוב: כל פרט בכתבה חייב להיות מתועד ואמיתי – אסור להמציא אירועים, ציטוטים או תיאורים. רק מה שידוע שקרה.`;
+
+/** מסיר מהתחלת הטיוטה משפטי הקדמה שהמודל לפעמים מוסיף (חיפוש, "הנה הכתבה" וכו') */
+function stripPreamble(draft: string): string {
+  const t = draft.trim();
+  if (!t) return t;
+  const preamblePatterns = [
+    /^תבסס\s*על\s*המידע\s*שקיבלתי\s*מהחיפוש,?\s*הנה\s*הכתבה\s*המלאה:?\s*[\n\r]*/i,
+    /^תבסס\s*על\s*המידע\s*מהחיפוש,?\s*הנה\s*הכתבה\s*המלאה:?\s*[\n\r]*/i,
+    /^הנה\s*הכתבה\s*המלאה:?\s*[\n\r]*/i,
+    /^להלן\s*הכתבה:?\s*[\n\r]*/i,
+    /^Based on the information (I )?received from the search,?\s*here is the full article:?\s*[\n\r]*/i,
+  ];
+  let out = t;
+  for (const p of preamblePatterns) {
+    out = out.replace(p, "").trim();
+  }
+  return out || t;
+}
 
 function getMockDraft(title: string, _description: string, _outline: string): string {
   return `זו טיוטת דוגמה לכתבה מלאה על הנושא: ${title}. כאן מופיע גוף הכתבה – לא השלד.
@@ -55,9 +75,10 @@ export async function generateDraft(
     ],
     max_tokens: 4096,
   });
-  const draft =
+  const raw =
     res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
-  return draft;
+  const draft = stripPreamble(raw);
+  return draft.length > 50 ? draft : getMockDraft(title, description, outline);
 }
 
 /** טיוטה מ-OpenAI (לשימוש ב־generateAllDrafts) */
@@ -79,7 +100,10 @@ async function generateDraftOpenAI(
     ],
     max_tokens: 4096,
   });
-  return res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
+  const raw =
+    res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
+  const draft = stripPreamble(raw);
+  return draft.length > 50 ? draft : getMockDraft(title, description, outline);
 }
 
 /** טיוטה מ-Gemini Mini */
@@ -98,8 +122,9 @@ async function generateDraftMini(
     systemInstruction: config.systemPrompt,
   });
   const result = await model.generateContent(DRAFT_USER_PROMPT(title, description, outline));
-  const text = result.response.text();
-  return text?.trim() || getMockDraft(title, description, outline);
+  const raw = result.response.text()?.trim() || getMockDraft(title, description, outline);
+  const draft = stripPreamble(raw);
+  return draft.length > 50 ? draft : getMockDraft(title, description, outline);
 }
 
 /** טיוטה מ-Anthropic (Claude) */
@@ -129,11 +154,12 @@ async function generateDraftCloud(
     ],
   });
   const textBlock = message.content.find((b) => (b as { type: string }).type === "text");
-  const text =
+  const raw =
     textBlock && "text" in textBlock && typeof (textBlock as { text?: string }).text === "string"
       ? (textBlock as { text: string }).text.trim()
-      : undefined;
-  return text || getMockDraft(title, description, outline);
+      : "";
+  const draft = stripPreamble(raw || getMockDraft(title, description, outline));
+  return draft.length > 50 ? draft : getMockDraft(title, description, outline);
 }
 
 export type DraftProvider = "openai" | "mini" | "cloud";

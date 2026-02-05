@@ -340,6 +340,13 @@ export function EditingStage() {
     setShowHistoryPanel(false);
   };
 
+  const handleEmptyDraft = () => {
+    pushToHistory(content);
+    setDraftContent("");
+    setEditedContent("");
+    setToast("הטיוטה רוקנה – אפשר להתחיל מחדש");
+  };
+
   const firstSuggestion = suggestions[0];
 
   // טוסט – ניקוי אוטומטי
@@ -420,6 +427,19 @@ export function EditingStage() {
             )}
             {!showDraftLoading && !hasDraftsToChoose && (
               <>
+                {content?.trim() && (
+                  <div className="mb-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleEmptyDraft}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-card-hover hover:text-foreground"
+                      title="רוקן את הטיוטה והתחל מחדש"
+                    >
+                      <span className="material-symbols-outlined text-lg">delete_sweep</span>
+                      טיוטה ריקה
+                    </button>
+                  </div>
+                )}
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                   <RichEditor
                     ref={editorRef}
