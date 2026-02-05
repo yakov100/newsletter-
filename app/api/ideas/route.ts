@@ -9,6 +9,14 @@ export async function POST() {
     return NextResponse.json({ ideas });
   } catch (e) {
     const message = e instanceof Error ? e.message : "שגיאה ביצירת רעיונות";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // שגיאות צפויות (מפתח חסר, תשובה לא מפוענחת) – 400 כדי שהלקוח יציג את ההודעה
+    const isExpected =
+      message.includes("מפתח API") ||
+      message.includes("לא הצלחנו לפרש") ||
+      message.includes("אינה JSON");
+    return NextResponse.json(
+      { error: message },
+      { status: isExpected ? 400 : 500 }
+    );
   }
 }

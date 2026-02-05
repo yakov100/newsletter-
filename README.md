@@ -18,7 +18,7 @@ npm run dev
 - **OPENAI_API_KEY** – (אופציונלי) ליצירת רעיונות, שלד כתבה והצעות עריכה. בלי מפתח – משתמשים ב-mock.
 - **OPENAI_MODEL** – (אופציונלי) ברירת מחדל: `gpt-4o-mini` (מהיר).
 - **ANTHROPIC_API_KEY** – (אופציונלי) אם קיים – יצירת רעיונות וטיוטות דרך Claude. עדיפות על OpenAI כששניהם מוגדרים.
-- **ANTHROPIC_MODEL** – (אופציונלי) ברירת מחדל: `claude-3-5-haiku-20241022` (מהיר). לאיכות גבוהה יותר אפשר להגדיר `claude-sonnet-4-20250514`.
+- **ANTHROPIC_MODEL** – (אופציונלי) ברירת מחדל: `claude-haiku-4-5-20251001` (מהיר). לאיכות גבוהה יותר אפשר להגדיר `claude-sonnet-4-5-20250929`.
 - **NEXT_PUBLIC_SUPABASE_URL**, **NEXT_PUBLIC_SUPABASE_ANON_KEY** – (אופציונלי) להתחברות ושמירה לארכיון. בלי – "שמירה לארכיון" ידרוש התחברות ותחזיר 503 אם Supabase לא מוגדר.
 - **TAVILY_API_KEY** – (אופציונלי) לאימות אמיתי של שלד הכתבה מול חיפוש ברשת (כפתור "אימות AI" במסך השלד). מומלץ: שירות חיפוש פעיל ומותאם ל־LLM. מפתח חינם ב־[app.tavily.com](https://app.tavily.com).
 - **SERPER_API_KEY** – (אופציונלי) חלופה ל־Tavily לאימות מול חיפוש. אם TAVILY_API_KEY מוגדר – משתמשים ב־Tavily. מפתח חינם ב־[serper.dev](https://serper.dev).

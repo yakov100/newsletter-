@@ -113,7 +113,7 @@ async function generateDraftCloud(
   if (!apiKey) return getMockDraft(title, description, outline);
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022";
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
   const message = await client.messages.create({
     model,
     max_tokens: 4096,
