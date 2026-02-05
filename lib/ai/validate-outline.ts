@@ -1,3 +1,4 @@
+import { createResponseWithWebSearch } from "./responses-web-search";
 import { webSearch, type WebSearchResult } from "./web-search";
 
 export type OutlineItemStatus = "ok" | "warning" | "unsure";
@@ -277,8 +278,73 @@ ${text.slice(0, 3500)}
 }
 
 /**
- * אימות שלד/טיוטה מול חיפוש ברשת: חילוץ טענות → חיפוש → שיפוט לפי תוצאות.
- * אם TAVILY_API_KEY או SERPER_API_KEY לא מוגדרים – מחזיר אימות מבוסס LLM בלבד (ללא חיפוש).
+ * אימות שלד/טיוטה באמצעות Responses API + web_search (OpenAI).
+ * מפחית הזיות – המודל משתמש בחיפוש אמיתי וציטוטי מקור.
+ */
+async function validateOutlineWithResponsesWebSearch(
+  openai: OpenAIClient,
+  title: string,
+  description: string,
+  text: string
+): Promise<OutlineValidationResult | null> {
+  const instructions = `אתה בודק עובדתיות של כתבה. זהה טענות עובדתיות (תאריכים, מספרים, שמות, אירועים, סטטיסטיקות) ובדוק כל אחת מול חיפוש ברשת באמצעות כלי החיפוש. אל תמציא עובדות – השתמש רק במה שמצאת בחיפוש. החזר JSON בלבד במבנה: {"items":[{"text":"טקסט הטענה","status":"ok|warning|unsure","reason":"סיבה קצרה בעברית רק ב-warning/unsure","sources":[{"title":"כותרת","link":"https://..."}]}],"summary":"סיכום קצר בעברית"}. עד ${MAX_CLAIMS} פריטים.`;
+
+  const input = `כותרת: ${title}\nתיאור: ${description}\n\nטקסט הכתבה (שלד או טיוטה):\n---\n${text.slice(0, 3000)}\n---`;
+
+  try {
+    const { outputText } = await createResponseWithWebSearch(openai, input, {
+      instructions,
+      maxOutputTokens: 2048,
+      includeSources: false,
+    });
+
+    const parsed = parseJsonFromModelResponse<{
+      items?: Array<{
+        text?: string;
+        status?: string;
+        reason?: string;
+        sources?: Array<{ title?: string; link?: string }>;
+      }>;
+      summary?: string;
+    }>(outputText);
+
+    if (!parsed?.items?.length) return null;
+
+    const items: OutlineValidationItem[] = (parsed.items ?? [])
+      .filter((x): x is { text: string; status?: string; reason?: string; sources?: Array<{ title?: string; link?: string }> } => x && typeof x.text === "string")
+      .slice(0, MAX_CLAIMS)
+      .map((x) => {
+        const status: OutlineItemStatus =
+          x.status === "warning" || x.status === "unsure" ? x.status : "ok";
+        const sources: OutlineValidationSource[] = (x.sources ?? [])
+          .filter((s) => s && typeof s.link === "string")
+          .map((s) => ({ title: String(s.title ?? "").trim() || "מקור", link: String(s.link).trim() }))
+          .slice(0, 2);
+        return {
+          text: String(x.text).trim(),
+          status,
+          reason: x.reason != null ? String(x.reason).trim() : undefined,
+          sources: sources.length > 0 ? sources : undefined,
+        };
+      });
+
+    const summary =
+      typeof parsed.summary === "string"
+        ? parsed.summary.trim()
+        : items.every((i) => i.status === "ok")
+          ? `אומתו ${items.length} טענות מול חיפוש ברשת (OpenAI Web Search).`
+          : `${items.filter((i) => i.status === "ok").length} מתוך ${items.length} טענות אומתו.`;
+    const allVerified = items.length > 0 && items.every((i) => i.status === "ok");
+
+    return { items, summary, allVerified, usedWebSearch: true };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * אימות שלד/טיוטה מול חיפוש ברשת: קודם מנסים Responses API + web_search (הפחתת הזיות),
+ * אחרת חילוץ טענות → חיפוש (Tavily/Serper) → שיפוט. אם אין חיפוש – אימות LLM בלבד.
  */
 export async function validateOutline(
   title: string,
@@ -302,14 +368,17 @@ export async function validateOutline(
 
   const OpenAI = (await import("openai")).default;
   const openai = new OpenAI({ apiKey: openaiKey });
-  const hasWebSearch =
+
+  // עדיפות: Responses API עם web_search (פחות הזיות, ציטוטים מהמודל)
+  const responsesResult = await validateOutlineWithResponsesWebSearch(openai, title, description, text);
+  if (responsesResult) return responsesResult;
+
+  const hasExternalSearch =
     Boolean(process.env.TAVILY_API_KEY?.trim()) || Boolean(process.env.SERPER_API_KEY?.trim());
 
-  if (hasWebSearch) {
-    // אימות אמיתי: חילוץ טענות → חיפוש ברשת → שיפוט
+  if (hasExternalSearch) {
     const claims = await extractClaims(openai, title, description, text);
     if (claims.length === 0) {
-      // חילוץ לא החזיר טענות – עוברים לאימות מבוסס LLM בלבד כדי שהמשתמש יקבל בדיקה
       return validateOutlineLlmOnly(openai, title, description, text);
     }
 

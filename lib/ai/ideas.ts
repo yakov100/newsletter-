@@ -197,6 +197,9 @@ async function generateIdeasWithClaude(
     model,
     max_tokens: 1024,
     system: config.systemPrompt,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: 5 },
+    ],
     messages: [{ role: "user", content: USER_PROMPT }],
   });
   const textBlock = message.content.find((b) => (b as { type: string }).type === "text");
