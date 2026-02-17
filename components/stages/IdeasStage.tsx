@@ -19,11 +19,10 @@ export function IdeasStage() {
         throw new Error(data.error || "שגיאה ביצירת רעיונות");
       }
       const data = await res.json();
-      setIdeas(data.ideas);
       if (data.validationResults) {
         setIdeaValidation(data.validationResults);
       }
-      goToStage("select");
+      setIdeas(data.ideas); // setIdeas also transitions to "select" stage
     } catch (e) {
       setError(e instanceof Error ? e.message : "שגיאה");
     } finally {

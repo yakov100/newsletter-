@@ -469,6 +469,7 @@ export function WritingStage() {
                     onChange={(e) => {
                       setOutline(e.target.value);
                       setVerifyResult(null);
+                      setShowWarningConfirm(false);
                     }}
                     rows={Math.max(8, outline.split(/\n/).length + 2)}
                     className="min-h-0 w-full resize-none overflow-visible border-none bg-transparent p-0 text-sm leading-relaxed text-foreground placeholder:text-muted focus:ring-0"

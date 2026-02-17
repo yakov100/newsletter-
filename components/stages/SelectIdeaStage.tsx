@@ -3,17 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/state/session-context";
 import type { Idea } from "@/types/idea";
+import type { IdeaValidation } from "@/lib/ai/validate-ideas";
 
 function randomId(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-interface IdeaValidation {
-  title: string;
-  description: string;
-  valid: boolean;
-  reason?: string;
-  confidence: number;
 }
 
 function IdeaCard({
