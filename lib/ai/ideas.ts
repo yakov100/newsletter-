@@ -9,7 +9,9 @@ const FORMAT_INSTRUCTION =
   "ענה ב-JSON בלבד במבנה הזה בדיוק: { \"ideas\": [ { \"title\": \"כותרת\", \"description\": \"תיאור\" }, ... ] } – מערך ideas עם בדיוק 3 אובייקטים, כל אחד עם title ו-description. אל תעטוף ב-markdown או בטקסט נוסף.";
 const NO_FABRICATION =
   "הצע רק סיפורים אמיתיים ומתועדים (שמות אמיתיים, אירועים שקרו). אסור להמציא אירועים, שמות, שבטים או מקומות.";
-const USER_PROMPT = `${NO_FABRICATION}\n\nצור בדיוק 3 רעיונות לכתבה אחת. ${FORMAT_INSTRUCTION}`;
+const SELF_CHECK =
+  "לפני שאתה מחזיר את התשובה – עצור ובדוק כל רעיון: האם הסיפור באמת קרה? האם השמות אמיתיים? האם התאריכים נכונים? אם אתה לא בטוח ב-100% שמשהו אמיתי – החלף אותו ברעיון אחר שאתה בטוח בו. עדיף רעיון פשוט ונכון מרעיון מרשים ומומצא.";
+const USER_PROMPT = `${NO_FABRICATION}\n\n${SELF_CHECK}\n\nצור בדיוק 3 רעיונות לכתבה אחת. כל רעיון חייב להתבסס על אירוע או נושא שניתן לאמת ברשת. ${FORMAT_INSTRUCTION}`;
 
 /** Remove tool/function call blocks from model output (for parsing and display). */
 function stripToolCallSyntax(s: string): string {

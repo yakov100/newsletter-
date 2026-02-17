@@ -4,6 +4,8 @@ import { webSearch } from "./web-search";
 const OUTLINE_SOURCES_NUM = 6;
 const PLACEHOLDER_RULE =
   "אל תכלול בשלד שום שם של אדם, ארגון, מקום, תאריך או מספר אלא אם הוא מופיע במפורש במקור/במידע שלפניך. אם יש ספק – כתוב [שם הדמות], [תאריך], [מקום] או [לבדיקה].";
+const SELF_CHECK_OUTLINE =
+  "לפני שאתה מחזיר את השלד — עבור על כל נקודה ושאל את עצמך: \"האם העובדה הזו מופיעה במקורות שקיבלתי? האם אני בטוח שהשם/התאריך/המספר הזה נכון?\" אם לא — החלף ב-[לבדיקה] או הסר. עדיף שלד עם פחות נקודות אבל כולן מדויקות.";
 
 function buildOutlineUserMessage(
   title: string,
@@ -28,7 +30,9 @@ ${sources.map((s) => `${s.title ? `[${s.title}]\n` : ""}${s.snippet}`).join("\n\
   const instructions = `
 
 החזר רק שלד: כותרות או משפט אחד לכל חלק (פתיחה, גוף, סיום). בלי פסקאות מלאות, בלי טקסט הכתבה עצמה. המטרה שהשלד יהיה רשימת נקודות/כותרות להנחיה בלבד – הכתבה המלאה תיכתב אחר כך. כל נקודה בשלד חייבת להתייחס רק לאירועים/עובדות מתועדות – לא להמציא.
-${sources.length === 0 ? `\n${PLACEHOLDER_RULE}` : ""}`;
+${sources.length === 0 ? `\n${PLACEHOLDER_RULE}` : ""}
+
+${SELF_CHECK_OUTLINE}`;
   return base + sourcesBlock + instructions;
 }
 
