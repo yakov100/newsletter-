@@ -1,4 +1,6 @@
 import type { Idea } from "./idea";
+import type { IdeaValidation } from "@/lib/ai/validate-ideas";
+import type { OutlineValidationResult } from "@/lib/ai/validate-outline";
 
 export type Stage =
   | "ideas"
@@ -21,6 +23,9 @@ export interface WritingSession {
   editedContent: string;
   draftLoading: boolean;
   allDrafts: AllDraftsState | null;
+  ideaValidation: IdeaValidation[] | null;
+  outlineValidation: OutlineValidationResult | null;
+  draftValidation: OutlineValidationResult | null;
   createdAt: number;
   updatedAt: number;
 }

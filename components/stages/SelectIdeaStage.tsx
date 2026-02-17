@@ -13,6 +13,7 @@ interface IdeaValidation {
   description: string;
   valid: boolean;
   reason?: string;
+  confidence: number;
 }
 
 function IdeaCard({
@@ -41,15 +42,33 @@ function IdeaCard({
           {idea.description}
         </p>
         {validation !== undefined && (
-          <p
-            className={`text-xs font-medium ${
-              validation.valid ? "text-emerald-400" : "text-amber-400"
-            }`}
-          >
-            {validation.valid
-              ? "✓ נכון, רלוונטי"
-              : `לא רלוונטי${validation.reason ? `: ${validation.reason}` : ""}`}
-          </p>
+          <div className="space-y-1.5">
+            <p
+              className={`text-xs font-medium ${
+                validation.valid ? "text-emerald-400" : "text-amber-400"
+              }`}
+            >
+              {validation.valid
+                ? "✓ נכון, רלוונטי"
+                : `לא רלוונטי${validation.reason ? `: ${validation.reason}` : ""}`}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted">אמינות</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-background">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    validation.confidence >= 70
+                      ? "bg-emerald-500"
+                      : validation.confidence >= 40
+                        ? "bg-amber-500"
+                        : "bg-red-500"
+                  }`}
+                  style={{ width: `${validation.confidence}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-muted">{validation.confidence}%</span>
+            </div>
+          </div>
         )}
         <button
           type="button"
@@ -79,7 +98,7 @@ function IdeaCard({
 }
 
 export function SelectIdeaStage() {
-  const { session, setIdeas, selectIdea, setOutline, setDraftContent, setEditedContent, setAllDrafts, goToStage } = useSession();
+  const { session, setIdeas, selectIdea, setOutline, setDraftContent, setEditedContent, setAllDrafts, setIdeaValidation, goToStage } = useSession();
   const { ideas, selectedIdea } = session;
   const [customTitle, setCustomTitle] = useState("");
   const [customDescription, setCustomDescription] = useState("");
@@ -103,7 +122,10 @@ export function SelectIdeaStage() {
         }),
       });
       const data = await res.json();
-      if (data.results) setValidations(data.results);
+      if (data.results) {
+        setValidations(data.results);
+        setIdeaValidation(data.results);
+      }
     } finally {
       setValidationsLoading(false);
     }
@@ -128,8 +150,12 @@ export function SelectIdeaStage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "שגיאה ביצירת רעיונות");
       }
-      const { ideas: newIdeas } = await res.json();
-      setIdeas(newIdeas);
+      const data = await res.json();
+      setIdeas(data.ideas);
+      if (data.validationResults) {
+        setValidations(data.validationResults);
+        setIdeaValidation(data.validationResults);
+      }
     } catch (e) {
       setReplaceError(e instanceof Error ? e.message : "שגיאה");
     } finally {

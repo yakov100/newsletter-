@@ -6,6 +6,7 @@ export interface IdeaValidation {
   description: string;
   valid: boolean;
   reason?: string;
+  confidence: number; // 0-100: how much documentation/evidence found online
 }
 
 const SEARCH_RESULTS_PER_IDEA = 4;
@@ -66,9 +67,10 @@ async function judgeIdeasWithSearchResults(
   const prompt = `בדוק כל רעיון לכתבה מול תוצאות החיפוש. לכל רעיון קבע:
 - valid: true – יש סימוכין ברשת (הסיפור/הנושא אמיתי, מתועד, לא מומצא).
 - valid: false – אין סימוכין, מומצא, או לא רלוונטי; תן reason קצר בעברית.
+- confidence: מספר 0-100 שמייצג כמה תיעוד ומקורות נמצאו ברשת (0 = לא נמצא כלום, 100 = מתועד היטב).
 
 החזר JSON בלבד:
-{"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false"}]}
+{"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false","confidence":75}]}
 
 נתונים:
 ${input}`;
@@ -92,6 +94,7 @@ ${input}`;
       description: item.description ?? "",
       valid: true,
       reason: undefined,
+      confidence: 50,
     }));
   }
 
@@ -105,6 +108,7 @@ ${input}`;
         description: item.description ?? "",
         valid: r ? Boolean(r.valid) : true,
         reason: r?.reason,
+        confidence: typeof r?.confidence === "number" ? Math.max(0, Math.min(100, r.confidence)) : (r?.valid ? 70 : 20),
       };
     });
   } catch {
@@ -113,6 +117,7 @@ ${input}`;
       description: item.description ?? "",
       valid: true,
       reason: undefined,
+      confidence: 50,
     }));
   }
 }
@@ -127,7 +132,7 @@ async function validateIdeasWithResponsesWebSearch(
   const list = ideas
     .map((i, idx) => `[${idx + 1}] כותרת: ${i.title}\n   תיאור: ${i.description ?? "-"}`)
     .join("\n\n");
-  const instructions = `בדוק כל רעיון לכתבה: השתמש בכלי חיפוש ברשת כדי לאמת אם הסיפור/הנושא אמיתי ומתועד. אל תמציא – רק מה שמצאת בחיפוש. החזר JSON בלבד: {"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false"}]}. valid: true רק אם יש סימוכין ברשת.`;
+  const instructions = `בדוק כל רעיון לכתבה: השתמש בכלי חיפוש ברשת כדי לאמת אם הסיפור/הנושא אמיתי ומתועד. אל תמציא – רק מה שמצאת בחיפוש. החזר JSON בלבד: {"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false","confidence":75}]}. valid: true רק אם יש סימוכין ברשת. confidence: מספר 0-100 שמייצג כמה תיעוד נמצא ברשת.`;
   const input = `רעיונות לבדיקה:\n${list}`;
 
   try {
@@ -145,6 +150,7 @@ async function validateIdeasWithResponsesWebSearch(
         description: item.description ?? "",
         valid: r ? Boolean(r.valid) : true,
         reason: r?.reason,
+        confidence: typeof r?.confidence === "number" ? Math.max(0, Math.min(100, r.confidence)) : (r?.valid ? 70 : 20),
       };
     });
   } catch {
@@ -164,6 +170,7 @@ export async function validateIdeas(
       description: i.description ?? "",
       valid: true,
       reason: "לא הוגדר OPENAI_API_KEY – לא בוצעה בדיקה.",
+      confidence: 0,
     }));
   }
 
@@ -200,10 +207,10 @@ export async function validateIdeas(
     .map((i, idx) => `${idx + 1}. כותרת: ${i.title}\n   תיאור: ${i.description ?? "-"}`)
     .join("\n\n");
 
-  const prompt = `נתונה רשימת רעיונות לכתבה/ניוזלטר. לכל רעיון (כותרת + תיאור) קבע אם הוא נכון ורלוונטי – כלומר הגיוני, מתאים לכתבה, לא מומצא או לא קשור. אם הרעיון לא ברור, גנרי מדי או לא מתאים – סמן כלא רלוונטי עם סיבה קצרה.
+  const prompt = `נתונה רשימת רעיונות לכתבה/ניוזלטר. לכל רעיון (כותרת + תיאור) קבע אם הוא נכון ורלוונטי – כלומר הגיוני, מתאים לכתבה, לא מומצא או לא קשור. אם הרעיון לא ברור, גנרי מדי או לא מתאים – סמן כלא רלוונטי עם סיבה קצרה. בנוסף, תן ציון confidence (0-100) שמייצג כמה הנושא מתועד וידוע.
 
 חזור ב-JSON בלבד:
-{"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false"}]}
+{"results":[{"title":"כותרת","description":"תיאור","valid":true או false,"reason":"סיבה קצרה בעברית רק אם valid=false","confidence":75}]}
 
 רעיונות:
 ${list}`;
@@ -227,6 +234,7 @@ ${list}`;
       description: i.description ?? "",
       valid: true,
       reason: undefined,
+      confidence: 50,
     }));
   }
 
@@ -240,6 +248,7 @@ ${list}`;
         description: item.description ?? "",
         valid: r ? Boolean(r.valid) : true,
         reason: r?.reason,
+        confidence: typeof r?.confidence === "number" ? Math.max(0, Math.min(100, r.confidence)) : (r?.valid ? 70 : 20),
       };
     });
   } catch {
@@ -248,6 +257,7 @@ ${list}`;
       description: i.description ?? "",
       valid: true,
       reason: undefined,
+      confidence: 50,
     }));
   }
 }

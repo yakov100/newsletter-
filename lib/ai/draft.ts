@@ -3,7 +3,8 @@ import type { WritingAgentConfig } from "@/lib/agent-config";
 const DRAFT_USER_PROMPT = (
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ) => `כתוב את גוף הכתבה המלא (טקסט גולמי בלבד, בלי JSON) לפי הרעיון והשלד הבאים.
 
 כותרת: ${title}
@@ -18,7 +19,11 @@ ${outline}
 
 כותרות בגוף הכתבה: הוסף 3–4 כותרות משנה קצרות וקליטות שמפצלות את הכתבה לחלקים ברורים (לא "פתיחה" או "סיום" – כותרות תוכן). כל כותרת בשורה נפרדת עם הסימן ## בהתחלה, ואחריה שורה ריקה. דוגמה: ## מה בדיוק קרה שם. הכותרות יוצגו בעיצוב בולט בעורך.
 
-חשוב: כל פרט בכתבה חייב להיות מתועד ואמיתי – אסור להמציא אירועים, ציטוטים או תיאורים. רק מה שידוע שקרה.`;
+חשוב: כל פרט בכתבה חייב להיות מתועד ואמיתי – אסור להמציא אירועים, ציטוטים או תיאורים. רק מה שידוע שקרה.${
+  validationWarnings?.length
+    ? `\n\nאזהרה חשובה: הטענות הבאות נמצאו כלא מאומתות באימות השלד – אל תכלול אותן בכתבה, או סמן אותן כ-[לבדיקה]:\n${validationWarnings.map((w, i) => `${i + 1}. ${w}`).join("\n")}`
+    : ""
+}`;
 
 /** מסיר מהתחלת הטיוטה משפטי הקדמה שהמודל לפעמים מוסיף (חיפוש, "הנה הכתבה" וכו') */
 function stripPreamble(draft: string): string {
@@ -59,7 +64,8 @@ export async function generateDraft(
   config: WritingAgentConfig,
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -71,7 +77,7 @@ export async function generateDraft(
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     messages: [
       { role: "system", content: config.systemPrompt },
-      { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
+      { role: "user", content: DRAFT_USER_PROMPT(title, description, outline, validationWarnings) },
     ],
     max_tokens: 4096,
   });
@@ -86,7 +92,8 @@ async function generateDraftOpenAI(
   config: WritingAgentConfig,
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return getMockDraft(title, description, outline);
@@ -96,7 +103,7 @@ async function generateDraftOpenAI(
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     messages: [
       { role: "system", content: config.systemPrompt },
-      { role: "user", content: DRAFT_USER_PROMPT(title, description, outline) },
+      { role: "user", content: DRAFT_USER_PROMPT(title, description, outline, validationWarnings) },
     ],
     max_tokens: 4096,
   });
@@ -111,7 +118,8 @@ async function generateDraftMini(
   config: WritingAgentConfig,
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return getMockDraft(title, description, outline);
@@ -121,7 +129,7 @@ async function generateDraftMini(
     model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
     systemInstruction: config.systemPrompt,
   });
-  const result = await model.generateContent(DRAFT_USER_PROMPT(title, description, outline));
+  const result = await model.generateContent(DRAFT_USER_PROMPT(title, description, outline, validationWarnings));
   const raw = result.response.text()?.trim() || getMockDraft(title, description, outline);
   const draft = stripPreamble(raw);
   return draft.length > 50 ? draft : getMockDraft(title, description, outline);
@@ -132,7 +140,8 @@ async function generateDraftCloud(
   config: WritingAgentConfig,
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return getMockDraft(title, description, outline);
@@ -149,7 +158,7 @@ async function generateDraftCloud(
     messages: [
       {
         role: "user",
-        content: DRAFT_USER_PROMPT(title, description, outline),
+        content: DRAFT_USER_PROMPT(title, description, outline, validationWarnings),
       },
     ],
   });
@@ -174,7 +183,8 @@ export async function generateAllDrafts(
   config: WritingAgentConfig,
   title: string,
   description: string,
-  outline: string
+  outline: string,
+  validationWarnings?: string[]
 ): Promise<AllDraftsResult> {
   const result: AllDraftsResult = { drafts: {}, errors: {} };
 
@@ -191,9 +201,9 @@ export async function generateAllDrafts(
   };
 
   await Promise.all([
-    run("openai", () => generateDraftOpenAI(config, title, description, outline)),
-    run("mini", () => generateDraftMini(config, title, description, outline)),
-    run("cloud", () => generateDraftCloud(config, title, description, outline)),
+    run("openai", () => generateDraftOpenAI(config, title, description, outline, validationWarnings)),
+    run("mini", () => generateDraftMini(config, title, description, outline, validationWarnings)),
+    run("cloud", () => generateDraftCloud(config, title, description, outline, validationWarnings)),
   ]);
 
   return result;

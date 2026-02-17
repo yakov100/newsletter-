@@ -23,7 +23,7 @@ export interface OutlineValidationResult {
   usedWebSearch: boolean;
 }
 
-const MAX_CLAIMS = 8;
+const MAX_CLAIMS = 12;
 const SEARCH_RESULTS_PER_CLAIM = 4;
 
 type OpenAIClient = InstanceType<typeof import("openai").default>;

@@ -49,10 +49,11 @@ function contentDisposition(fileName: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { title, dateLabel, htmlContent } = (await request.json()) as {
+    const { title, dateLabel, htmlContent, verified } = (await request.json()) as {
       title: string;
       dateLabel: string;
       htmlContent: string;
+      verified?: boolean;
     };
 
     const fontBase64 = getFontBase64();
@@ -100,6 +101,17 @@ export async function POST(request: Request) {
       fontName: FONT_HEBREW,
       fontStyleNormalOnly: true,
     });
+
+    // Add verification stamp in footer
+    const totalPages = pdf.getNumberOfPages();
+    const verifiedLabel = verified === true ? "מאומת AI ✓" : "לא מאומת";
+    for (let p = 1; p <= totalPages; p++) {
+      pdf.setPage(p);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(verifiedLabel, margin, pageH - 20);
+    }
+    pdf.setTextColor(0, 0, 0);
 
     const buf = Buffer.from(pdf.output("arraybuffer"));
     const fileName = displayFileName(title);

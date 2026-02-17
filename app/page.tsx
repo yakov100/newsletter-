@@ -8,6 +8,7 @@ import { WritingStage } from "@/components/stages/WritingStage";
 import { EditingStage } from "@/components/stages/EditingStage";
 import { CompletionStage } from "@/components/stages/CompletionStage";
 import { AppHeader } from "@/components/ui/AppHeader";
+import { ValidationProgressBar } from "@/components/ui/ValidationProgressBar";
 
 function MainContent() {
   const { session, goToStage } = useSession();
@@ -16,6 +17,9 @@ function MainContent() {
   return (
     <>
       <AppHeader currentStage={stage} onGoToStage={goToStage} />
+      <div className="mx-auto w-full max-w-4xl px-4 py-2">
+        <ValidationProgressBar />
+      </div>
       <main className="flex flex-1 flex-col min-h-0">
         {stage === "editing" ? (
           <div className="flex flex-1 flex-col min-h-0">

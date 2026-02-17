@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/state/session-context";
 import type { DraftProvider } from "@/lib/ai/draft";
 import type { OutlineValidationResult } from "@/lib/ai/validate-outline";
@@ -98,7 +98,7 @@ const MODEL_OPTIONS: {
 ];
 
 export function WritingStage() {
-  const { session, setDraftContent, setOutline, setDraftLoading, setAllDrafts, goToStage } = useSession();
+  const { session, setDraftContent, setOutline, setDraftLoading, setAllDrafts, setOutlineValidation, goToStage } = useSession();
   const { selectedIdea, outline } = session;
   const [outlineLoading, setOutlineLoading] = useState(false);
   const [draftLoading, setDraftLoadingLocal] = useState(false);
@@ -108,6 +108,8 @@ export function WritingStage() {
   const [verifyResult, setVerifyResult] = useState<OutlineValidationResult | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [outlineError, setOutlineError] = useState<string | null>(null);
+  const [showWarningConfirm, setShowWarningConfirm] = useState(false);
+  const autoVerifiedForRef = useRef<string>("");
 
   const useAllThree = selectedModel === "all" || selectedModel === "mini" || selectedModel === "cloud";
 
@@ -157,6 +159,18 @@ export function WritingStage() {
     fetchOutline();
   }, [selectedIdea, outline, fetchOutline]);
 
+  const hasOpenWarnings = verifyResult && !verifyResult.allVerified &&
+    verifyResult.items.some((i) => i.status === "warning" || i.status === "unsure");
+
+  function handleGenerateDraft() {
+    if (hasOpenWarnings && !showWarningConfirm) {
+      setShowWarningConfirm(true);
+      return;
+    }
+    setShowWarningConfirm(false);
+    generateDraft();
+  }
+
   async function generateDraft() {
     if (!selectedIdea || !outline?.trim()) return;
     setDraftError(null);
@@ -168,6 +182,11 @@ export function WritingStage() {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const generateAll = useAllThree;
+      // Collect validation warnings to pass to draft prompt
+      const validationWarnings = verifyResult?.items
+        .filter((i) => i.status === "warning" || i.status === "unsure")
+        .map((i) => i.text + (i.reason ? ` (${i.reason})` : "")) ?? [];
+
       const res = await fetch("/api/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,15 +195,24 @@ export function WritingStage() {
           description: selectedIdea.description,
           outline,
           generateAll,
+          validationWarnings: validationWarnings.length > 0 ? validationWarnings : undefined,
         }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      const text = await res.text();
       let data: { error?: string; draft?: string; drafts?: Record<string, string>; errors?: Record<string, string> };
       try {
-        data = await res.json();
+        data = text.startsWith("{") ? JSON.parse(text) : {};
       } catch {
-        setDraftError(res.ok ? "תגובת השרת לא בפורמט תקין" : `שגיאת שרת (${res.status})`);
+        const isHtml = text.trimStart().startsWith("<");
+        setDraftError(
+          isHtml
+            ? "השרת החזיר דף שגיאה – ייתכן שהבקשה ארכה מדי או שיש תקלה. נסה שוב."
+            : res.ok
+              ? "תגובת השרת לא בפורמט תקין"
+              : `שגיאת שרת (${res.status})`
+        );
         return;
       }
       if (!res.ok) {
@@ -274,23 +302,36 @@ export function WritingStage() {
         });
         return;
       }
-      setVerifyResult({
+      const result = {
         items: data.items ?? [],
         summary: data.summary ?? "",
         allVerified: Boolean(data.allVerified),
         usedWebSearch: Boolean(data.usedWebSearch),
-      });
+      };
+      setVerifyResult(result);
+      setOutlineValidation(result);
     } catch (err) {
-      setVerifyResult({
+      const result = {
         items: [],
         summary: err instanceof Error ? err.message : "שגיאה באימות – נסה שוב",
         allVerified: false,
         usedWebSearch: false,
-      });
+      };
+      setVerifyResult(result);
+      setOutlineValidation(result);
     } finally {
       setVerifyLoading(false);
     }
   }
+
+  // Auto-validate outline when it first loads
+  useEffect(() => {
+    if (!outline?.trim() || !selectedIdea) return;
+    const key = outline.trim().slice(0, 200);
+    if (autoVerifiedForRef.current === key) return;
+    autoVerifiedForRef.current = key;
+    runVerify();
+  }, [outline, selectedIdea]);
 
   async function runReviseOutline() {
     if (!outline?.trim() || !verifyResult || verifyResult.allVerified) return;
@@ -600,7 +641,7 @@ export function WritingStage() {
           <div className="mt-1 space-y-2">
             <button
               type="button"
-              onClick={generateDraft}
+              onClick={handleGenerateDraft}
               disabled={draftLoading || !outline?.trim()}
               className="create-draft-btn flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:shadow-[var(--primary)]/25 disabled:opacity-50 disabled:pointer-events-none"
             >
@@ -616,6 +657,29 @@ export function WritingStage() {
                 </>
               )}
             </button>
+            {showWarningConfirm && (
+              <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-right" dir="rtl">
+                <p className="mb-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                  יש אזהרות אימות פתוחות. מומלץ לתקן לפני יצירת טיוטה.
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWarningConfirm(false)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-foreground"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowWarningConfirm(false); generateDraft(); }}
+                    className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+                  >
+                    צור בכל זאת
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="text-center text-[11px] text-muted">
               משך משוער כ־30 שניות
             </p>

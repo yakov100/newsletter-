@@ -81,7 +81,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function EditingStage() {
-  const { session, setDraftContent, setEditedContent, setAllDrafts, goToStage } = useSession();
+  const { session, setDraftContent, setEditedContent, setAllDrafts, setDraftValidation, goToStage } = useSession();
   const { selectedIdea, draftContent, editedContent, draftLoading, allDrafts } = session;
   const content = editedContent || draftContent;
   const hasDraftsToChoose = allDrafts && Object.keys(allDrafts.drafts).length > 0 && !content;
@@ -103,8 +103,11 @@ export function EditingStage() {
   const [draftTheme, setDraftTheme] = useState<DraftTheme>(DEFAULT_DRAFT_THEME);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState<OutlineValidationResult | null>(null);
+  const [showRevalidate, setShowRevalidate] = useState(false);
   const lastContentRef = useRef<string>("");
   const historyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoVerifiedRef = useRef(false);
+  const initialContentRef = useRef<string>("");
 
   useEffect(() => {
     setDraftTheme(loadDraftTheme());
@@ -315,23 +318,45 @@ export function EditingStage() {
         });
         return;
       }
-      setVerifyResult({
+      const result = {
         items: data.items ?? [],
         summary: data.summary ?? "",
         allVerified: Boolean(data.allVerified),
         usedWebSearch: Boolean(data.usedWebSearch),
-      });
+      };
+      setVerifyResult(result);
+      setDraftValidation(result);
     } catch (err) {
-      setVerifyResult({
+      const result = {
         items: [],
         summary: err instanceof Error ? err.message : "שגיאה באימות – נסה שוב",
         allVerified: false,
         usedWebSearch: false,
-      });
+      };
+      setVerifyResult(result);
+      setDraftValidation(result);
     } finally {
       setVerifyLoading(false);
     }
   };
+
+  // Auto-validate draft when entering editing stage
+  useEffect(() => {
+    if (autoVerifiedRef.current || !content?.trim() || hasDraftsToChoose) return;
+    autoVerifiedRef.current = true;
+    initialContentRef.current = content;
+    runVerify();
+  }, [content, hasDraftsToChoose]);
+
+  // Show re-validate button when content changes significantly (>20%)
+  useEffect(() => {
+    if (!initialContentRef.current || !content) return;
+    const initial = initialContentRef.current.length;
+    if (initial === 0) return;
+    const diff = Math.abs(content.length - initial);
+    const changePercent = (diff / initial) * 100;
+    setShowRevalidate(changePercent > 20 && autoVerifiedRef.current);
+  }, [content]);
 
   const showComingSoon = () => setToast("בקרוב");
 
@@ -456,6 +481,19 @@ export function EditingStage() {
                 </div>
                 {/* אימות AI על טקסט הטיוטה */}
                 <div className="mt-4 flex flex-col gap-3">
+                  {showRevalidate && (
+                    <div className="flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2" dir="rtl">
+                      <span className="material-symbols-outlined text-amber-500">refresh</span>
+                      <span className="flex-1 text-sm text-amber-800 dark:text-amber-200">הטקסט השתנה משמעותית מאז האימות האחרון</span>
+                      <button
+                        type="button"
+                        onClick={() => { setShowRevalidate(false); initialContentRef.current = content; runVerify(); }}
+                        className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+                      >
+                        אמת מחדש
+                      </button>
+                    </div>
+                  )}
                   <p className="text-xs text-muted" dir="rtl">
                     מומלץ לאמת עובדות בטקסט לפני סיום.
                   </p>

@@ -20,16 +20,20 @@ export async function POST(request: Request) {
     );
   }
   const body = await request.json();
-  const { title, content } = body as { title?: string; content?: string };
+  const { title, content, verified } = body as { title?: string; content?: string; verified?: boolean };
   if (!title || typeof content !== "string") {
     return NextResponse.json(
       { error: "חסרים כותרת או תוכן" },
       { status: 400 }
     );
   }
+  const insertData: Record<string, unknown> = { user_id: user.id, title, content };
+  if (typeof verified === "boolean") {
+    insertData.verified = verified;
+  }
   const { data, error } = await supabase
     .from("archive")
-    .insert({ user_id: user.id, title, content })
+    .insert(insertData)
     .select("id")
     .single();
   if (error) {

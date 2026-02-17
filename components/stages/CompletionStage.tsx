@@ -3,16 +3,57 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/state/session-context";
+import type { OutlineValidationResult } from "@/lib/ai/validate-outline";
 
 export function CompletionStage() {
-  const { session, resetSession, goToStage } = useSession();
-  const { selectedIdea, editedContent, draftContent } = session;
+  const { session, resetSession, goToStage, setDraftValidation } = useSession();
+  const { selectedIdea, editedContent, draftContent, draftValidation } = session;
   const finalContent = editedContent || draftContent;
   const [archiveStatus, setArchiveStatus] = useState<"idle" | "loading" | "ok" | "err" | "auth">("idle");
   const [archiveMessage, setArchiveMessage] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareFeedback, setShareFeedback] = useState("");
+  const [finalCheckLoading, setFinalCheckLoading] = useState(false);
+  const [finalCheckResult, setFinalCheckResult] = useState<OutlineValidationResult | null>(draftValidation);
+  const [showPdfConfirm, setShowPdfConfirm] = useState(false);
+
+  const isVerified = finalCheckResult?.allVerified === true;
+
+  const handleFinalCheck = async () => {
+    const plain = (finalContent || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (!plain) return;
+    setFinalCheckLoading(true);
+    try {
+      const res = await fetch("/api/validate-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: selectedIdea?.title ?? "",
+          description: selectedIdea?.description ?? "",
+          draft: plain,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const result: OutlineValidationResult = {
+        items: data.items ?? [],
+        summary: data.summary ?? "",
+        allVerified: Boolean(data.allVerified),
+        usedWebSearch: Boolean(data.usedWebSearch),
+      };
+      setFinalCheckResult(result);
+      setDraftValidation(result);
+    } catch {
+      setFinalCheckResult({
+        items: [],
+        summary: "שגיאה באימות – נסה שוב",
+        allVerified: false,
+        usedWebSearch: false,
+      });
+    } finally {
+      setFinalCheckLoading(false);
+    }
+  };
 
   const handleCopy = async () => {
     const plain = (finalContent || "").replace(/<[^>]+>/g, "").trim();
@@ -30,7 +71,7 @@ export function CompletionStage() {
       const res = await fetch("/api/archive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content: plain || "" }),
+        body: JSON.stringify({ title, content: plain || "", verified: isVerified }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
@@ -75,6 +116,7 @@ export function CompletionStage() {
           title,
           dateLabel,
           htmlContent: finalContent || "<p>אין תוכן.</p>",
+          verified: isVerified,
         }),
       });
       if (!res.ok) {
@@ -187,8 +229,31 @@ export function CompletionStage() {
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         {/* Toolbar */}
         <div className="flex items-center justify-between border-b border-border bg-background px-6 py-4">
-          <h3 className="font-bold text-foreground">תצוגה מקדימה</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="font-bold text-foreground">תצוגה מקדימה</h3>
+            {finalCheckResult && (
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                isVerified
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
+              }`}>
+                <span className="material-symbols-outlined text-sm">
+                  {isVerified ? "verified" : "warning"}
+                </span>
+                {isVerified ? "מאומת" : "לא מאומת"}
+              </span>
+            )}
+          </div>
           <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleFinalCheck}
+              disabled={finalCheckLoading}
+              className="ai-verify-btn group relative inline-flex items-center gap-2 rounded-lg bg-gradient-to-l from-violet-500 via-fuchsia-500 to-cyan-400 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-sm">fact_check</span>
+              {finalCheckLoading ? "בודק…" : "בדיקה סופית"}
+            </button>
             <button
               type="button"
               onClick={handleCopy}
@@ -199,7 +264,14 @@ export function CompletionStage() {
             </button>
             <button
               type="button"
-              onClick={handleDownloadPdf}
+              onClick={() => {
+                if (!finalCheckResult && !showPdfConfirm) {
+                  setShowPdfConfirm(true);
+                  return;
+                }
+                setShowPdfConfirm(false);
+                handleDownloadPdf();
+              }}
               disabled={pdfLoading}
               className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
               title="הדפס / שמור כ-PDF"
@@ -209,6 +281,44 @@ export function CompletionStage() {
             </button>
           </div>
         </div>
+        {showPdfConfirm && (
+          <div className="border-b border-amber-500/50 bg-amber-500/10 px-6 py-3 flex items-center justify-between" dir="rtl">
+            <span className="text-sm text-amber-800 dark:text-amber-200">הכתבה לא עברה בדיקת אימות סופית. להמשיך?</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPdfConfirm(false)}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ביטול
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowPdfConfirm(false); handleDownloadPdf(); }}
+                className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+              >
+                הורד בכל זאת
+              </button>
+            </div>
+          </div>
+        )}
+        {finalCheckResult && !finalCheckResult.allVerified && finalCheckResult.items.length > 0 && (
+          <div className="border-b border-border bg-violet-50/50 px-6 py-3 dark:bg-violet-950/20" dir="rtl">
+            <p className="mb-2 text-sm font-bold text-foreground">{finalCheckResult.summary}</p>
+            <ul className="space-y-1">
+              {finalCheckResult.items.filter((i) => i.status !== "ok").map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className={`material-symbols-outlined text-sm mt-0.5 ${
+                    item.status === "warning" ? "text-amber-500" : "text-slate-400"
+                  }`}>
+                    {item.status === "warning" ? "warning" : "help"}
+                  </span>
+                  <span className="text-foreground">{item.text}{item.reason ? ` — ${item.reason}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-8 sm:p-12">

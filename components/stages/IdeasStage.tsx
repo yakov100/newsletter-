@@ -5,7 +5,7 @@ import { useSession } from "@/lib/state/session-context";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 export function IdeasStage() {
-  const { setIdeas, goToStage } = useSession();
+  const { setIdeas, setIdeaValidation, goToStage } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,8 +18,11 @@ export function IdeasStage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "שגיאה ביצירת רעיונות");
       }
-      const { ideas } = await res.json();
-      setIdeas(ideas);
+      const data = await res.json();
+      setIdeas(data.ideas);
+      if (data.validationResults) {
+        setIdeaValidation(data.validationResults);
+      }
       goToStage("select");
     } catch (e) {
       setError(e instanceof Error ? e.message : "שגיאה");
