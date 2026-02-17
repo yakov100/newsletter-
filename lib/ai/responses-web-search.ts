@@ -18,6 +18,7 @@ export interface ResponsesWebSearchResult {
 type OpenAIClient = InstanceType<typeof OpenAI>;
 
 const DEFAULT_MODEL = "gpt-4o-mini";
+const RESPONSES_TIMEOUT_MS = 30_000;
 
 /**
  * קורא ל-Responses API עם כלי web_search.
@@ -63,7 +64,14 @@ export async function createResponseWithWebSearch(
     ...(include.length > 0 && { include }),
   } as Parameters<OpenAIClient["responses"]["create"]>[0];
 
-  const response = await client.responses.create(body);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RESPONSES_TIMEOUT_MS);
+  let response: Awaited<ReturnType<OpenAIClient["responses"]["create"]>>;
+  try {
+    response = await client.responses.create(body, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const outputText = "output_text" in response && typeof response.output_text === "string"
     ? response.output_text

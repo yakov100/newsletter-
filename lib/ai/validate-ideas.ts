@@ -1,4 +1,5 @@
 import { createResponseWithWebSearch } from "./responses-web-search";
+import { parseJsonFromModelResponse } from "./parse-json";
 import { webSearch, type WebSearchResult } from "./web-search";
 
 export interface IdeaValidation {
@@ -12,34 +13,6 @@ export interface IdeaValidation {
 const SEARCH_RESULTS_PER_IDEA = 4;
 
 type OpenAIClient = InstanceType<typeof import("openai").default>;
-
-function parseJsonFromModelResponse<T>(raw: string): T | null {
-  let s = raw.trim();
-  const codeBlock = /^```(?:json)?\s*([\s\S]*?)```\s*$/;
-  const match = s.match(codeBlock);
-  if (match) s = match[1].trim();
-  const firstBrace = s.indexOf("{");
-  if (firstBrace !== -1) {
-    let depth = 0;
-    let end = -1;
-    for (let i = firstBrace; i < s.length; i++) {
-      if (s[i] === "{") depth++;
-      else if (s[i] === "}") {
-        depth--;
-        if (depth === 0) {
-          end = i;
-          break;
-        }
-      }
-    }
-    if (end !== -1) s = s.slice(firstBrace, end + 1);
-  }
-  try {
-    return JSON.parse(s) as T;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * שופט כל רעיון מול תוצאות החיפוש: valid (יש סימוכין/סיפור אמיתי) או invalid + reason.

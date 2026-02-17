@@ -99,6 +99,7 @@ export function SelectIdeaStage() {
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const [validations, setValidations] = useState<IdeaValidation[] | null>(null);
   const [validationsLoading, setValidationsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const autoValidatedForRef = useRef<string>("");
 
@@ -106,6 +107,7 @@ export function SelectIdeaStage() {
     if (!ideas.length) return;
     setValidationsLoading(true);
     setValidations(null);
+    setValidationError(null);
     try {
       const res = await fetch("/api/validate-ideas", {
         method: "POST",
@@ -115,10 +117,14 @@ export function SelectIdeaStage() {
         }),
       });
       const data = await res.json();
-      if (data.results) {
+      if (data.error) {
+        setValidationError(data.error);
+      } else if (data.results) {
         setValidations(data.results);
         setIdeaValidation(data.results);
       }
+    } catch {
+      setValidationError("שגיאה באימות הרעיונות – נסה שוב");
     } finally {
       setValidationsLoading(false);
     }
@@ -246,6 +252,12 @@ export function SelectIdeaStage() {
       {ideas.length > 0 && validationsLoading && (
         <p className="mb-4 text-center text-sm text-muted">
           בודק נכונות מול הרשת…
+        </p>
+      )}
+
+      {validationError && (
+        <p className="mb-4 text-center text-sm text-amber-500">
+          {validationError}
         </p>
       )}
 

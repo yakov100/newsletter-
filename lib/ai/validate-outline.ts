@@ -1,4 +1,5 @@
 import { createResponseWithWebSearch } from "./responses-web-search";
+import { parseJsonFromModelResponse } from "./parse-json";
 import { webSearch, type WebSearchResult } from "./web-search";
 
 export type OutlineItemStatus = "ok" | "warning" | "unsure";
@@ -23,43 +24,10 @@ export interface OutlineValidationResult {
   usedWebSearch: boolean;
 }
 
-const MAX_CLAIMS = 12;
+const DEFAULT_MAX_CLAIMS = 12;
 const SEARCH_RESULTS_PER_CLAIM = 4;
 
 type OpenAIClient = InstanceType<typeof import("openai").default>;
-
-/**
- * מנסה לחלץ ולפרסר JSON מתשובת מודל (לעיתים עטוף ב-markdown או עם טקסט נוסף).
- */
-function parseJsonFromModelResponse<T>(raw: string): T | null {
-  let s = raw.trim();
-  // הסרת סימון קוד markdown
-  const codeBlock = /^```(?:json)?\s*([\s\S]*?)```\s*$/;
-  const match = s.match(codeBlock);
-  if (match) s = match[1].trim();
-  // חילוץ אובייקט JSON אם יש טקסט לפני/אחרי
-  const firstBrace = s.indexOf("{");
-  if (firstBrace !== -1) {
-    let depth = 0;
-    let end = -1;
-    for (let i = firstBrace; i < s.length; i++) {
-      if (s[i] === "{") depth++;
-      else if (s[i] === "}") {
-        depth--;
-        if (depth === 0) {
-          end = i;
-          break;
-        }
-      }
-    }
-    if (end !== -1) s = s.slice(firstBrace, end + 1);
-  }
-  try {
-    return JSON.parse(s) as T;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * מחלץ מטקסט הכתבה (שלד או טיוטה) טענות עובדתיות לבדיקה (כל טענה + שאילתת חיפוש מוצעת).
@@ -68,7 +36,8 @@ async function extractClaims(
   openai: OpenAIClient,
   title: string,
   description: string,
-  outlineText: string
+  outlineText: string,
+  maxClaims: number = DEFAULT_MAX_CLAIMS
 ): Promise<Array<{ text: string; searchQuery: string }>> {
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
   const prompt = `טקסט כתבה (כותרת: ${title}, תיאור: ${description}) – שלד או טיוטה מלאה:
@@ -76,7 +45,7 @@ async function extractClaims(
 ${outlineText.slice(0, 3000)}
 ---
 
-חלץ מהטקסט עד ${MAX_CLAIMS} טענות עובדתיות שכדאי לאמת ברשת: תאריכים, מספרים, שמות, אירועים, סטטיסטיקות. לכל טענה תן:
+חלץ מהטקסט עד ${maxClaims} טענות עובדתיות שכדאי לאמת ברשת: תאריכים, מספרים, שמות, אירועים, סטטיסטיקות. לכל טענה תן:
 1. text – הצגת הטקסט הרלוונטי (משפט קצר).
 2. searchQuery – שאילתת חיפוש אחת באנגלית או בעברית שמתאימה לאימות הטענה.
 
@@ -105,7 +74,7 @@ ${outlineText.slice(0, 3000)}
     .filter((c) => c && typeof c.text === "string" && typeof c.searchQuery === "string")
     .map((c) => ({ text: String(c.text).trim(), searchQuery: String(c.searchQuery).trim() }))
     .filter((c) => c.text && c.searchQuery)
-    .slice(0, MAX_CLAIMS);
+    .slice(0, maxClaims);
   return claims;
 }
 
@@ -202,7 +171,8 @@ async function validateOutlineLlmOnly(
   openai: OpenAIClient,
   title: string,
   description: string,
-  text: string
+  text: string,
+  maxClaims: number = DEFAULT_MAX_CLAIMS
 ): Promise<OutlineValidationResult> {
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
   const prompt = `אתה בודק עובדתיות של טקסט כתבה (טיוטה או שלד). הרעיון: כותרת – ${title}. תיאור – ${description}.
@@ -254,7 +224,7 @@ ${text.slice(0, 3500)}
         status: (x.status === "warning" || x.status === "unsure" ? x.status : "ok") as OutlineItemStatus,
         reason: x.reason != null ? String(x.reason).trim() : undefined,
       }))
-      .slice(0, MAX_CLAIMS);
+      .slice(0, maxClaims);
 
     const summary =
       typeof parsed.summary === "string"
@@ -285,9 +255,10 @@ async function validateOutlineWithResponsesWebSearch(
   openai: OpenAIClient,
   title: string,
   description: string,
-  text: string
+  text: string,
+  maxClaims: number = DEFAULT_MAX_CLAIMS
 ): Promise<OutlineValidationResult | null> {
-  const instructions = `אתה בודק עובדתיות של כתבה. זהה טענות עובדתיות (תאריכים, מספרים, שמות, אירועים, סטטיסטיקות) ובדוק כל אחת מול חיפוש ברשת באמצעות כלי החיפוש. אל תמציא עובדות – השתמש רק במה שמצאת בחיפוש. החזר JSON בלבד במבנה: {"items":[{"text":"טקסט הטענה","status":"ok|warning|unsure","reason":"סיבה קצרה בעברית רק ב-warning/unsure","sources":[{"title":"כותרת","link":"https://..."}]}],"summary":"סיכום קצר בעברית"}. עד ${MAX_CLAIMS} פריטים.`;
+  const instructions = `אתה בודק עובדתיות של כתבה. זהה טענות עובדתיות (תאריכים, מספרים, שמות, אירועים, סטטיסטיקות) ובדוק כל אחת מול חיפוש ברשת באמצעות כלי החיפוש. אל תמציא עובדות – השתמש רק במה שמצאת בחיפוש. החזר JSON בלבד במבנה: {"items":[{"text":"טקסט הטענה","status":"ok|warning|unsure","reason":"סיבה קצרה בעברית רק ב-warning/unsure","sources":[{"title":"כותרת","link":"https://..."}]}],"summary":"סיכום קצר בעברית"}. עד ${maxClaims} פריטים.`;
 
   const input = `כותרת: ${title}\nתיאור: ${description}\n\nטקסט הכתבה (שלד או טיוטה):\n---\n${text.slice(0, 3000)}\n---`;
 
@@ -312,7 +283,7 @@ async function validateOutlineWithResponsesWebSearch(
 
     const items: OutlineValidationItem[] = (parsed.items ?? [])
       .filter((x): x is { text: string; status?: string; reason?: string; sources?: Array<{ title?: string; link?: string }> } => x && typeof x.text === "string")
-      .slice(0, MAX_CLAIMS)
+      .slice(0, maxClaims)
       .map((x) => {
         const status: OutlineItemStatus =
           x.status === "warning" || x.status === "unsure" ? x.status : "ok";
@@ -349,8 +320,10 @@ async function validateOutlineWithResponsesWebSearch(
 export async function validateOutline(
   title: string,
   description: string,
-  outlineText: string
+  outlineText: string,
+  options?: { maxClaims?: number }
 ): Promise<OutlineValidationResult> {
+  const maxClaims = options?.maxClaims ?? DEFAULT_MAX_CLAIMS;
   const openaiKey = process.env.OPENAI_API_KEY;
   const text = (outlineText || "").trim();
   if (!text) {
@@ -370,16 +343,16 @@ export async function validateOutline(
   const openai = new OpenAI({ apiKey: openaiKey });
 
   // עדיפות: Responses API עם web_search (פחות הזיות, ציטוטים מהמודל)
-  const responsesResult = await validateOutlineWithResponsesWebSearch(openai, title, description, text);
+  const responsesResult = await validateOutlineWithResponsesWebSearch(openai, title, description, text, maxClaims);
   if (responsesResult) return responsesResult;
 
   const hasExternalSearch =
     Boolean(process.env.TAVILY_API_KEY?.trim()) || Boolean(process.env.SERPER_API_KEY?.trim());
 
   if (hasExternalSearch) {
-    const claims = await extractClaims(openai, title, description, text);
+    const claims = await extractClaims(openai, title, description, text, maxClaims);
     if (claims.length === 0) {
-      return validateOutlineLlmOnly(openai, title, description, text);
+      return validateOutlineLlmOnly(openai, title, description, text, maxClaims);
     }
 
     const claimsWithResults = await Promise.all(
@@ -402,7 +375,7 @@ export async function validateOutline(
     return { items, summary, allVerified, usedWebSearch: true };
   }
 
-  return validateOutlineLlmOnly(openai, title, description, text);
+  return validateOutlineLlmOnly(openai, title, description, text, maxClaims);
 }
 
 /**

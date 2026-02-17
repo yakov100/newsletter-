@@ -93,32 +93,6 @@ export async function generateDraft(
   return draft.length > 50 ? draft : getMockDraft(title, description, outline);
 }
 
-/** טיוטה מ-OpenAI (לשימוש ב־generateAllDrafts) */
-async function generateDraftOpenAI(
-  config: WritingAgentConfig,
-  title: string,
-  description: string,
-  outline: string,
-  validationWarnings?: string[]
-): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return getMockDraft(title, description, outline);
-  const OpenAI = (await import("openai")).default;
-  const openai = new OpenAI({ apiKey });
-  const res = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-    messages: [
-      { role: "system", content: config.systemPrompt },
-      { role: "user", content: DRAFT_USER_PROMPT(title, description, outline, validationWarnings) },
-    ],
-    max_tokens: 4096,
-  });
-  const raw =
-    res.choices[0]?.message?.content?.trim() ?? getMockDraft(title, description, outline);
-  const draft = stripPreamble(raw);
-  return draft.length > 50 ? draft : getMockDraft(title, description, outline);
-}
-
 /** טיוטה מ-Gemini Mini */
 async function generateDraftMini(
   config: WritingAgentConfig,
@@ -159,7 +133,7 @@ async function generateDraftCloud(
     max_tokens: 4096,
     system: config.systemPrompt,
     tools: [
-      { type: "web_search_20250305", name: "web_search", max_uses: 5 },
+      { type: "web_search_20250305", name: "web_search", max_uses: 2 },
     ],
     messages: [
       {
@@ -207,7 +181,7 @@ export async function generateAllDrafts(
   };
 
   await Promise.all([
-    run("openai", () => generateDraftOpenAI(config, title, description, outline, validationWarnings)),
+    run("openai", () => generateDraft(config, title, description, outline, validationWarnings)),
     run("mini", () => generateDraftMini(config, title, description, outline, validationWarnings)),
     run("cloud", () => generateDraftCloud(config, title, description, outline, validationWarnings)),
   ]);

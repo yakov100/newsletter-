@@ -348,14 +348,22 @@ export function EditingStage() {
     runVerify();
   }, [content, hasDraftsToChoose]);
 
-  // Show re-validate button when content changes significantly (>20%)
+  // Show re-validate button when content changes significantly (>20%), debounced 2s
+  const revalidateDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!initialContentRef.current || !content) return;
-    const initial = initialContentRef.current.length;
-    if (initial === 0) return;
-    const diff = Math.abs(content.length - initial);
-    const changePercent = (diff / initial) * 100;
-    setShowRevalidate(changePercent > 20 && autoVerifiedRef.current);
+    if (revalidateDebounceRef.current) clearTimeout(revalidateDebounceRef.current);
+    revalidateDebounceRef.current = setTimeout(() => {
+      revalidateDebounceRef.current = null;
+      const initial = initialContentRef.current.length;
+      if (initial === 0) return;
+      const diff = Math.abs((content?.length ?? 0) - initial);
+      const changePercent = (diff / initial) * 100;
+      setShowRevalidate(changePercent > 20 && autoVerifiedRef.current);
+    }, 2000);
+    return () => {
+      if (revalidateDebounceRef.current) clearTimeout(revalidateDebounceRef.current);
+    };
   }, [content]);
 
   const showComingSoon = () => setToast("בקרוב");

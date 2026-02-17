@@ -11,6 +11,11 @@ export interface WritingAgentConfig {
 
 const CONFIG_PATH = path.join(process.cwd(), "data", "agent-config.json");
 
+// --- Module-level config cache with 60s TTL ---
+const CONFIG_CACHE_TTL_MS = 60_000;
+let configCache: { ideas: IdeasAgentConfig; writing: WritingAgentConfig } | null = null;
+let configCacheExpiresAt = 0;
+
 const defaultIdeasConfig: IdeasAgentConfig = {
   systemPrompt:
     "אתה סוכן רעיונות לכתבות וניוזלטרים בעברית. עקרונות ליבה:\n1. דיוק קודם להכל — הצע רק נושאים אמיתיים, מתועדים וניתנים לאימות. אסור להמציא אירועים, שמות או עובדות.\n2. בדיקה עצמית — לפני שאתה מציע רעיון, שאל את עצמך: \"האם אני יכול להצביע על מקור אמיתי לזה?\" אם התשובה לא — אל תציע.\n3. מגוון — הצע 3 רעיונות מזוויות שונות (חדשות, ניתוח, סיפור אנושי) כדי לתת בחירה אמיתית.\n4. כל רעיון: כותרת קצרה וקליטה + תיאור של 1–2 משפטים (מה הזווית, למה מעניין, מה מקור המידע).\n\nענה ב-JSON בלבד: { \"ideas\": [ { \"title\": \"...\", \"description\": \"...\" } ] }.",
@@ -25,6 +30,11 @@ async function loadConfig(): Promise<{
   ideas: IdeasAgentConfig;
   writing: WritingAgentConfig;
 }> {
+  // Return cached config if still valid
+  if (configCache && Date.now() < configCacheExpiresAt) {
+    return configCache;
+  }
+
   try {
     const raw = await readFile(CONFIG_PATH, "utf-8");
     const data = JSON.parse(raw);
@@ -37,9 +47,15 @@ async function loadConfig(): Promise<{
     if (!writing.systemPrompt?.trim()) {
       writing.systemPrompt = defaultWritingConfig.systemPrompt;
     }
-    return { ideas, writing };
+    const result = { ideas, writing };
+    configCache = result;
+    configCacheExpiresAt = Date.now() + CONFIG_CACHE_TTL_MS;
+    return result;
   } catch {
-    return { ideas: defaultIdeasConfig, writing: defaultWritingConfig };
+    const result = { ideas: defaultIdeasConfig, writing: defaultWritingConfig };
+    configCache = result;
+    configCacheExpiresAt = Date.now() + CONFIG_CACHE_TTL_MS;
+    return result;
   }
 }
 
@@ -73,4 +89,7 @@ export async function setAgentConfig(config: {
   const { mkdir } = await import("fs/promises");
   await mkdir(dir, { recursive: true });
   await writeFile(CONFIG_PATH, JSON.stringify(next, null, 2), "utf-8");
+  // Invalidate cache after write
+  configCache = null;
+  configCacheExpiresAt = 0;
 }

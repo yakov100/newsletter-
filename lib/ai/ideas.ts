@@ -13,25 +13,15 @@ const SELF_CHECK =
   "לפני שאתה מחזיר את התשובה – עצור ובדוק כל רעיון: האם הסיפור באמת קרה? האם השמות אמיתיים? האם התאריכים נכונים? אם אתה לא בטוח ב-100% שמשהו אמיתי – החלף אותו ברעיון אחר שאתה בטוח בו. עדיף רעיון פשוט ונכון מרעיון מרשים ומומצא.";
 const USER_PROMPT = `${NO_FABRICATION}\n\n${SELF_CHECK}\n\nצור בדיוק 3 רעיונות לכתבה אחת. כל רעיון חייב להתבסס על אירוע או נושא שניתן לאמת ברשת. ${FORMAT_INSTRUCTION}`;
 
-/** Remove tool/function call blocks from model output (for parsing and display). */
-function stripToolCallSyntax(s: string): string {
-  return s
+/** Remove tool/function call blocks from model output. collapseWhitespace=true for display, false for JSON parsing. */
+function stripToolCallSyntax(s: string, collapseWhitespace = false): string {
+  let out = s
     .replace(/web_search_function_calls>>[\s\S]*?(?=```|$)/gi, "")
     .replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/invoke>/gi, "")
     .replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/parameter>/gi, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** Same as above but without collapsing whitespace, for use before JSON parse. */
-function stripToolCallSyntaxForParsing(s: string): string {
-  return s
-    .replace(/web_search_function_calls>>[\s\S]*?(?=```|$)/gi, "")
-    .replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/invoke>/gi, "")
-    .replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/parameter>/gi, "")
-    .replace(/<[^>]+>/g, "")
-    .trim();
+    .replace(/<[^>]+>/g, "");
+  if (collapseWhitespace) out = out.replace(/\s+/g, " ");
+  return out.trim();
 }
 
 /** Try to get parseable JSON from model output (code blocks, raw JSON, or {...} substring). */
@@ -172,7 +162,7 @@ function extractIdeasFallback(content: string): Idea[] {
 }
 
 function parseIdeasFromResponse(content: string): Idea[] {
-  const contentWithoutToolCalls = stripToolCallSyntaxForParsing(content);
+  const contentWithoutToolCalls = stripToolCallSyntax(content);
   const jsonStr = normalizeJson(extractJsonString(contentWithoutToolCalls));
   try {
     const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
@@ -212,7 +202,7 @@ async function generateIdeasWithClaude(
     max_tokens: 1024,
     system: config.systemPrompt,
     tools: [
-      { type: "web_search_20250305", name: "web_search", max_uses: 5 },
+      { type: "web_search_20250305", name: "web_search", max_uses: 2 },
     ],
     messages: [{ role: "user", content: USER_PROMPT }],
   });
